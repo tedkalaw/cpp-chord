@@ -16,8 +16,11 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include <boost/thread.hpp>
 
 #define ME NULL
+#define SUCCESSOR 0
+#define NO_PREDECESSOR -1
 
 using namespace std;
 using namespace ::apache::thrift;
@@ -43,8 +46,7 @@ class ChordHandler : virtual public ChordIf {
     pow <<= m;
     this->pow = pow;
 
-
-    if(introducer_port != -1 && introducer_port != port){
+    if(id != 0){
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
       shared_ptr<TTransport> transport(new TBufferedTransport(socket));
       shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
@@ -55,6 +57,8 @@ class ChordHandler : virtual public ChordIf {
       printf("Introducer told me that my successor is %d on port %d\n", returned.id,
           returned.port);
       transport->close();
+      this->set_succ(returned.id, returned.port);
+
     }
     else{
       this->introducer = NULL;
@@ -86,6 +90,17 @@ class ChordHandler : virtual public ChordIf {
     printf("get_table\n");
   }
 
+  void notify(const int32_t pid) {
+    printf("Process %d claims to be my predecessor.\n", pid);
+    if(this->predecessor == NO_PREDECESSOR || in_range(predecessor, this->id, pid)){
+      predecessor = pid;
+      printf("Changing my predecessor to %d\n", predecessor);
+    }
+    else{
+      printf("No change to predecessor\n");
+    }
+  }
+
   //tell the introducer that we are joining
   //we can assume that add_node won't be called with an id that has alreayd 
   //been used
@@ -111,8 +126,8 @@ class ChordHandler : virtual public ChordIf {
     this->closest_preceding_finger(_return, pid);
   }
 
-  bool in_range(int end, int test){
-    return ((test > this->id) && (test < this->pow)) || ((test < end) && (test > 0));
+  bool in_range(int start, int end, int test){
+    return ((test > start) && (test < this->pow)) || ((test < end) && (test > 0));
   }
 
   void closest_preceding_finger(neighbor& _return, const int32_t pid){
@@ -122,15 +137,17 @@ class ChordHandler : virtual public ChordIf {
     while(--i){
       entry = this->finger_table->at(i);
       if(entry == NULL) continue;
-      if(this->in_range(pid, entry->id)){
+      if(this->in_range(this->id, pid, entry->id)){
         //pass to next node
         entry->connection->closest_preceding_finger(_return, pid);
+        return;
       }
     }
     //current node is closest
     _return.id = this->get_id();
     _return.port = this->get_port();
-    Node* curr = this->finger_table->at(i);
+    Node* curr = this->finger_table->at(SUCCESSOR);
+    //case for first node - this node is its own successor
     if(curr == NULL){
       _return.succ_id = this->get_id();
       _return.succ_port = this->get_port();
@@ -139,7 +156,6 @@ class ChordHandler : virtual public ChordIf {
       _return.succ_id = curr->id;
       _return.succ_port = curr->port;
     }
-
   }
 
   void get_info(neighbor& _return){
@@ -149,8 +165,7 @@ class ChordHandler : virtual public ChordIf {
   //class functions
   bool is_introducer(){
     return (this->introducer_port != -1);
-  }
-
+  } 
   int get_port(){
     return this->port;
   }
@@ -169,15 +184,20 @@ class ChordHandler : virtual public ChordIf {
     Node* curr = this->finger_table->at(0);
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
-      curr = new Node(id, port);
-      (*(this->finger_table))[0] = curr;
+      printf("making new node that points to %d::%d\n", id, port);
+      (*(this->finger_table))[0] = new Node(id, port);
     }
     else{
-      //only do this stuff it's a new node!
+      //only do this stuff if it's a new node!
       if(curr->id != id){
-
+        delete curr;
+        (*(this->finger_table))[0] = new Node(id, port);
       }
     }
+
+    printf("Telling %d that it is my successor\n", id);
+    curr = this->finger_table->at(0);
+    curr->notify(this->id);
   }
 
   int get_pred(){
@@ -191,6 +211,11 @@ class ChordHandler : virtual public ChordIf {
   ChordClient* introducer;
   vector<Node*>* finger_table;
   int pow;
+
+  //verify current node's successor
+  void stabilize(){
+
+  }
 
  private:
   int m;
@@ -244,11 +269,11 @@ int main(int argc, char **argv) {
 
   TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
   printf("Starting session on port %d\n", nodeh->get_port());
-  //tell introducer that we have begun
-  if(nodeh->get_id() != 0){
-    //put this stuff into init, then we can delete the connection to introducer
-    //don't try to be clever
-  }
+
+  //spawn thread to take care of stabilization stuff
+  boost::thread t();
+  
+
   server.serve();
   return 0;
 }

@@ -27,6 +27,10 @@ class Node {
     int port;
     ChordClient* connection;
     Node(int, int);
+    ~Node();
+    void notify(int);
+    void open_connection();
+    void close_connection();
 
   private:
     shared_ptr<TSocket> socket;
@@ -41,7 +45,23 @@ Node::Node(int id, int port){
   this->transport = shared_ptr<TTransport>(new TBufferedTransport(socket));
   this->protocol = shared_ptr<TProtocol>(new TBinaryProtocol(transport));
   this->connection = new ChordClient(protocol);
+}
+
+void Node::notify(int id){
+  open_connection();
+  this->connection->notify(id);
+  close_connection();
+}
+
+void Node::open_connection(){
   this->transport->open();
 }
 
+void Node::close_connection(){
+  this->transport->close();
+}
+
 //how do destructors work again? haha
+Node::~Node(){
+  delete this->connection;
+}

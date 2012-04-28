@@ -46,6 +46,7 @@ service Chord
 	void get_file(),
 	void get_table(),
         successor join_network(1: i32 pid),
+        void notify(1: i32 pid),
         successor find_successor(1: i32 pid),
         neighbor find_predecessor(1: i32 pid),
         neighbor closest_preceding_finger(1: i32 pid),
