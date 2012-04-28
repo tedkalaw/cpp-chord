@@ -8,6 +8,8 @@ INC += -I$(THRIFT_DIR) -I$(BOOST_DIR)
 
 LINK += -L/class/ece428/libs/lib -Wl,-rpath,/class/ece428/libs/lib
 
+#BOOSTIP = -I/usr/local/include
+
 .PHONY: all clean
 
 all: node  listener

@@ -20,6 +20,7 @@ class ChordIf {
   virtual void del_file() = 0;
   virtual void get_file() = 0;
   virtual void get_table() = 0;
+  virtual void test_method(node& _return) = 0;
 };
 
 class ChordIfFactory {
@@ -62,6 +63,9 @@ class ChordNull : virtual public ChordIf {
     return;
   }
   void get_table() {
+    return;
+  }
+  void test_method(node& /* _return */) {
     return;
   }
 };
@@ -436,6 +440,100 @@ class Chord_get_table_presult {
 
 };
 
+
+class Chord_test_method_args {
+ public:
+
+  Chord_test_method_args() {
+  }
+
+  virtual ~Chord_test_method_args() throw() {}
+
+
+  bool operator == (const Chord_test_method_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const Chord_test_method_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_test_method_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_test_method_pargs {
+ public:
+
+
+  virtual ~Chord_test_method_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_test_method_result__isset {
+  _Chord_test_method_result__isset() : success(false) {}
+  bool success;
+} _Chord_test_method_result__isset;
+
+class Chord_test_method_result {
+ public:
+
+  Chord_test_method_result() {
+  }
+
+  virtual ~Chord_test_method_result() throw() {}
+
+  node success;
+
+  _Chord_test_method_result__isset __isset;
+
+  void __set_success(const node& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_test_method_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_test_method_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_test_method_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_test_method_presult__isset {
+  _Chord_test_method_presult__isset() : success(false) {}
+  bool success;
+} _Chord_test_method_presult__isset;
+
+class Chord_test_method_presult {
+ public:
+
+
+  virtual ~Chord_test_method_presult() throw() {}
+
+  node* success;
+
+  _Chord_test_method_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class ChordClient : virtual public ChordIf {
  public:
   ChordClient(boost::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
@@ -471,6 +569,9 @@ class ChordClient : virtual public ChordIf {
   void get_table();
   void send_get_table();
   void recv_get_table();
+  void test_method(node& _return);
+  void send_test_method();
+  void recv_test_method(node& _return);
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -489,6 +590,7 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
   void process_del_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_test_method(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   ChordProcessor(boost::shared_ptr<ChordIf> iface) :
     iface_(iface) {
@@ -497,6 +599,7 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
     processMap_["del_file"] = &ChordProcessor::process_del_file;
     processMap_["get_file"] = &ChordProcessor::process_get_file;
     processMap_["get_table"] = &ChordProcessor::process_get_table;
+    processMap_["test_method"] = &ChordProcessor::process_test_method;
   }
 
   virtual bool process(boost::shared_ptr<apache::thrift::protocol::TProtocol> piprot, boost::shared_ptr<apache::thrift::protocol::TProtocol> poprot, void* callContext);
@@ -558,6 +661,18 @@ class ChordMultiface : virtual public ChordIf {
     size_t sz = ifaces_.size();
     for (size_t i = 0; i < sz; ++i) {
       ifaces_[i]->get_table();
+    }
+  }
+
+  void test_method(node& _return) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->test_method(_return);
+        return;
+      } else {
+        ifaces_[i]->test_method(_return);
+      }
     }
   }
 

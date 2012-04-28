@@ -17,48 +17,56 @@
 namespace mp2 {
 
 typedef struct _node__isset {
-  _node__isset() : m(false), id(false), port(false) {}
-  bool m;
-  bool id;
-  bool port;
+  _node__isset() : my_m(false), my_id(false), my_port(false), introducer_port(false) {}
+  bool my_m;
+  bool my_id;
+  bool my_port;
+  bool introducer_port;
 } _node__isset;
 
 class node {
  public:
 
-  static const char* ascii_fingerprint; // = "6435B39C87AB0E30F30BEDEFD7328C0D";
-  static const uint8_t binary_fingerprint[16]; // = {0x64,0x35,0xB3,0x9C,0x87,0xAB,0x0E,0x30,0xF3,0x0B,0xED,0xEF,0xD7,0x32,0x8C,0x0D};
+  static const char* ascii_fingerprint; // = "154BB42C2FFD70F8B3993568C50C5613";
+  static const uint8_t binary_fingerprint[16]; // = {0x15,0x4B,0xB4,0x2C,0x2F,0xFD,0x70,0xF8,0xB3,0x99,0x35,0x68,0xC5,0x0C,0x56,0x13};
 
-  node() : m(0), id(0), port(0) {
+  node() : my_m(0), my_id(0), my_port(0), introducer_port(0) {
   }
 
   virtual ~node() throw() {}
 
-  int32_t m;
-  int32_t id;
-  int32_t port;
+  int32_t my_m;
+  int32_t my_id;
+  int32_t my_port;
+  int32_t introducer_port;
 
   _node__isset __isset;
 
-  void __set_m(const int32_t val) {
-    m = val;
+  void __set_my_m(const int32_t val) {
+    my_m = val;
   }
 
-  void __set_id(const int32_t val) {
-    id = val;
+  void __set_my_id(const int32_t val) {
+    my_id = val;
   }
 
-  void __set_port(const int32_t val) {
-    port = val;
+  void __set_my_port(const int32_t val) {
+    my_port = val;
+  }
+
+  void __set_introducer_port(const int32_t val) {
+    introducer_port = val;
   }
 
   bool operator == (const node & rhs) const
   {
-    if (!(m == rhs.m))
+    if (!(my_m == rhs.my_m))
       return false;
-    if (!(id == rhs.id))
+    if (!(my_id == rhs.my_id))
       return false;
-    if (!(port == rhs.port))
+    if (!(my_port == rhs.my_port))
+      return false;
+    if (!(introducer_port == rhs.introducer_port))
       return false;
     return true;
   }

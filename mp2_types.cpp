@@ -8,8 +8,8 @@
 
 namespace mp2 {
 
-const char* node::ascii_fingerprint = "6435B39C87AB0E30F30BEDEFD7328C0D";
-const uint8_t node::binary_fingerprint[16] = {0x64,0x35,0xB3,0x9C,0x87,0xAB,0x0E,0x30,0xF3,0x0B,0xED,0xEF,0xD7,0x32,0x8C,0x0D};
+const char* node::ascii_fingerprint = "154BB42C2FFD70F8B3993568C50C5613";
+const uint8_t node::binary_fingerprint[16] = {0x15,0x4B,0xB4,0x2C,0x2F,0xFD,0x70,0xF8,0xB3,0x99,0x35,0x68,0xC5,0x0C,0x56,0x13};
 
 uint32_t node::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -33,24 +33,32 @@ uint32_t node::read(::apache::thrift::protocol::TProtocol* iprot) {
     {
       case 1:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->m);
-          this->__isset.m = true;
+          xfer += iprot->readI32(this->my_m);
+          this->__isset.my_m = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 2:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->id);
-          this->__isset.id = true;
+          xfer += iprot->readI32(this->my_id);
+          this->__isset.my_id = true;
         } else {
           xfer += iprot->skip(ftype);
         }
         break;
       case 3:
         if (ftype == ::apache::thrift::protocol::T_I32) {
-          xfer += iprot->readI32(this->port);
-          this->__isset.port = true;
+          xfer += iprot->readI32(this->my_port);
+          this->__isset.my_port = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->introducer_port);
+          this->__isset.introducer_port = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -70,14 +78,17 @@ uint32_t node::read(::apache::thrift::protocol::TProtocol* iprot) {
 uint32_t node::write(::apache::thrift::protocol::TProtocol* oprot) const {
   uint32_t xfer = 0;
   xfer += oprot->writeStructBegin("node");
-  xfer += oprot->writeFieldBegin("m", ::apache::thrift::protocol::T_I32, 1);
-  xfer += oprot->writeI32(this->m);
+  xfer += oprot->writeFieldBegin("my_m", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->my_m);
   xfer += oprot->writeFieldEnd();
-  xfer += oprot->writeFieldBegin("id", ::apache::thrift::protocol::T_I32, 2);
-  xfer += oprot->writeI32(this->id);
+  xfer += oprot->writeFieldBegin("my_id", ::apache::thrift::protocol::T_I32, 2);
+  xfer += oprot->writeI32(this->my_id);
   xfer += oprot->writeFieldEnd();
-  xfer += oprot->writeFieldBegin("port", ::apache::thrift::protocol::T_I32, 3);
-  xfer += oprot->writeI32(this->port);
+  xfer += oprot->writeFieldBegin("my_port", ::apache::thrift::protocol::T_I32, 3);
+  xfer += oprot->writeI32(this->my_port);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("introducer_port", ::apache::thrift::protocol::T_I32, 4);
+  xfer += oprot->writeI32(this->introducer_port);
   xfer += oprot->writeFieldEnd();
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
