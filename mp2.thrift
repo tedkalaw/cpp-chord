@@ -13,6 +13,20 @@ struct node
 
 }
 
+struct neighbor
+{
+  1: i32 id,
+  2: i32 port,
+  3: i32 succ_id,
+  4: i32 succ_port,
+}
+
+struct successor
+{
+  1: i32 id,
+  2: i32 port
+}
+
 struct UserProfile {
   1: i32 uid,
   2: string name,
@@ -31,7 +45,11 @@ service Chord
 	void del_file(),
 	void get_file(),
 	void get_table(),
-        void join_network()
+        successor join_network(1: i32 pid),
+        successor find_successor(1: i32 pid),
+        neighbor find_predecessor(1: i32 pid),
+        neighbor closest_preceding_finger(1: i32 pid),
+        neighbor get_info()
 
 
 }

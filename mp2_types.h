@@ -81,6 +81,177 @@ class node {
 
 };
 
+typedef struct _neighbor__isset {
+  _neighbor__isset() : id(false), port(false), succ_id(false), succ_port(false) {}
+  bool id;
+  bool port;
+  bool succ_id;
+  bool succ_port;
+} _neighbor__isset;
+
+class neighbor {
+ public:
+
+  static const char* ascii_fingerprint; // = "154BB42C2FFD70F8B3993568C50C5613";
+  static const uint8_t binary_fingerprint[16]; // = {0x15,0x4B,0xB4,0x2C,0x2F,0xFD,0x70,0xF8,0xB3,0x99,0x35,0x68,0xC5,0x0C,0x56,0x13};
+
+  neighbor() : id(0), port(0), succ_id(0), succ_port(0) {
+  }
+
+  virtual ~neighbor() throw() {}
+
+  int32_t id;
+  int32_t port;
+  int32_t succ_id;
+  int32_t succ_port;
+
+  _neighbor__isset __isset;
+
+  void __set_id(const int32_t val) {
+    id = val;
+  }
+
+  void __set_port(const int32_t val) {
+    port = val;
+  }
+
+  void __set_succ_id(const int32_t val) {
+    succ_id = val;
+  }
+
+  void __set_succ_port(const int32_t val) {
+    succ_port = val;
+  }
+
+  bool operator == (const neighbor & rhs) const
+  {
+    if (!(id == rhs.id))
+      return false;
+    if (!(port == rhs.port))
+      return false;
+    if (!(succ_id == rhs.succ_id))
+      return false;
+    if (!(succ_port == rhs.succ_port))
+      return false;
+    return true;
+  }
+  bool operator != (const neighbor &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const neighbor & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _successor__isset {
+  _successor__isset() : id(false), port(false) {}
+  bool id;
+  bool port;
+} _successor__isset;
+
+class successor {
+ public:
+
+  static const char* ascii_fingerprint; // = "989D1F1AE8D148D5E2119FFEC4BBBEE3";
+  static const uint8_t binary_fingerprint[16]; // = {0x98,0x9D,0x1F,0x1A,0xE8,0xD1,0x48,0xD5,0xE2,0x11,0x9F,0xFE,0xC4,0xBB,0xBE,0xE3};
+
+  successor() : id(0), port(0) {
+  }
+
+  virtual ~successor() throw() {}
+
+  int32_t id;
+  int32_t port;
+
+  _successor__isset __isset;
+
+  void __set_id(const int32_t val) {
+    id = val;
+  }
+
+  void __set_port(const int32_t val) {
+    port = val;
+  }
+
+  bool operator == (const successor & rhs) const
+  {
+    if (!(id == rhs.id))
+      return false;
+    if (!(port == rhs.port))
+      return false;
+    return true;
+  }
+  bool operator != (const successor &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const successor & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _UserProfile__isset {
+  _UserProfile__isset() : uid(false), name(false), blurb(false) {}
+  bool uid;
+  bool name;
+  bool blurb;
+} _UserProfile__isset;
+
+class UserProfile {
+ public:
+
+  static const char* ascii_fingerprint; // = "3368C2F81F2FEF71F11EDACDB2A3ECEF";
+  static const uint8_t binary_fingerprint[16]; // = {0x33,0x68,0xC2,0xF8,0x1F,0x2F,0xEF,0x71,0xF1,0x1E,0xDA,0xCD,0xB2,0xA3,0xEC,0xEF};
+
+  UserProfile() : uid(0), name(""), blurb("") {
+  }
+
+  virtual ~UserProfile() throw() {}
+
+  int32_t uid;
+  std::string name;
+  std::string blurb;
+
+  _UserProfile__isset __isset;
+
+  void __set_uid(const int32_t val) {
+    uid = val;
+  }
+
+  void __set_name(const std::string& val) {
+    name = val;
+  }
+
+  void __set_blurb(const std::string& val) {
+    blurb = val;
+  }
+
+  bool operator == (const UserProfile & rhs) const
+  {
+    if (!(uid == rhs.uid))
+      return false;
+    if (!(name == rhs.name))
+      return false;
+    if (!(blurb == rhs.blurb))
+      return false;
+    return true;
+  }
+  bool operator != (const UserProfile &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const UserProfile & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
 } // namespace
 
 #endif

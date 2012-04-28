@@ -20,7 +20,11 @@ class ChordIf {
   virtual void del_file() = 0;
   virtual void get_file() = 0;
   virtual void get_table() = 0;
-  virtual void test_method(node& _return) = 0;
+  virtual void join_network(successor& _return, const int32_t pid) = 0;
+  virtual void find_successor(successor& _return, const int32_t pid) = 0;
+  virtual void find_predecessor(neighbor& _return, const int32_t pid) = 0;
+  virtual void closest_preceding_finger(neighbor& _return, const int32_t pid) = 0;
+  virtual void get_info(neighbor& _return) = 0;
 };
 
 class ChordIfFactory {
@@ -65,7 +69,19 @@ class ChordNull : virtual public ChordIf {
   void get_table() {
     return;
   }
-  void test_method(node& /* _return */) {
+  void join_network(successor& /* _return */, const int32_t /* pid */) {
+    return;
+  }
+  void find_successor(successor& /* _return */, const int32_t /* pid */) {
+    return;
+  }
+  void find_predecessor(neighbor& /* _return */, const int32_t /* pid */) {
+    return;
+  }
+  void closest_preceding_finger(neighbor& /* _return */, const int32_t /* pid */) {
+    return;
+  }
+  void get_info(neighbor& /* _return */) {
     return;
   }
 };
@@ -440,25 +456,38 @@ class Chord_get_table_presult {
 
 };
 
+typedef struct _Chord_join_network_args__isset {
+  _Chord_join_network_args__isset() : pid(false) {}
+  bool pid;
+} _Chord_join_network_args__isset;
 
-class Chord_test_method_args {
+class Chord_join_network_args {
  public:
 
-  Chord_test_method_args() {
+  Chord_join_network_args() : pid(0) {
   }
 
-  virtual ~Chord_test_method_args() throw() {}
+  virtual ~Chord_join_network_args() throw() {}
 
+  int32_t pid;
 
-  bool operator == (const Chord_test_method_args & /* rhs */) const
+  _Chord_join_network_args__isset __isset;
+
+  void __set_pid(const int32_t val) {
+    pid = val;
+  }
+
+  bool operator == (const Chord_join_network_args & rhs) const
   {
+    if (!(pid == rhs.pid))
+      return false;
     return true;
   }
-  bool operator != (const Chord_test_method_args &rhs) const {
+  bool operator != (const Chord_join_network_args &rhs) const {
     return !(*this == rhs);
   }
 
-  bool operator < (const Chord_test_method_args & ) const;
+  bool operator < (const Chord_join_network_args & ) const;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
@@ -466,69 +495,488 @@ class Chord_test_method_args {
 };
 
 
-class Chord_test_method_pargs {
+class Chord_join_network_pargs {
  public:
 
 
-  virtual ~Chord_test_method_pargs() throw() {}
+  virtual ~Chord_join_network_pargs() throw() {}
 
+  const int32_t* pid;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
 };
 
-typedef struct _Chord_test_method_result__isset {
-  _Chord_test_method_result__isset() : success(false) {}
+typedef struct _Chord_join_network_result__isset {
+  _Chord_join_network_result__isset() : success(false) {}
   bool success;
-} _Chord_test_method_result__isset;
+} _Chord_join_network_result__isset;
 
-class Chord_test_method_result {
+class Chord_join_network_result {
  public:
 
-  Chord_test_method_result() {
+  Chord_join_network_result() {
   }
 
-  virtual ~Chord_test_method_result() throw() {}
+  virtual ~Chord_join_network_result() throw() {}
 
-  node success;
+  successor success;
 
-  _Chord_test_method_result__isset __isset;
+  _Chord_join_network_result__isset __isset;
 
-  void __set_success(const node& val) {
+  void __set_success(const successor& val) {
     success = val;
   }
 
-  bool operator == (const Chord_test_method_result & rhs) const
+  bool operator == (const Chord_join_network_result & rhs) const
   {
     if (!(success == rhs.success))
       return false;
     return true;
   }
-  bool operator != (const Chord_test_method_result &rhs) const {
+  bool operator != (const Chord_join_network_result &rhs) const {
     return !(*this == rhs);
   }
 
-  bool operator < (const Chord_test_method_result & ) const;
+  bool operator < (const Chord_join_network_result & ) const;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
 };
 
-typedef struct _Chord_test_method_presult__isset {
-  _Chord_test_method_presult__isset() : success(false) {}
+typedef struct _Chord_join_network_presult__isset {
+  _Chord_join_network_presult__isset() : success(false) {}
   bool success;
-} _Chord_test_method_presult__isset;
+} _Chord_join_network_presult__isset;
 
-class Chord_test_method_presult {
+class Chord_join_network_presult {
  public:
 
 
-  virtual ~Chord_test_method_presult() throw() {}
+  virtual ~Chord_join_network_presult() throw() {}
 
-  node* success;
+  successor* success;
 
-  _Chord_test_method_presult__isset __isset;
+  _Chord_join_network_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_find_successor_args__isset {
+  _Chord_find_successor_args__isset() : pid(false) {}
+  bool pid;
+} _Chord_find_successor_args__isset;
+
+class Chord_find_successor_args {
+ public:
+
+  Chord_find_successor_args() : pid(0) {
+  }
+
+  virtual ~Chord_find_successor_args() throw() {}
+
+  int32_t pid;
+
+  _Chord_find_successor_args__isset __isset;
+
+  void __set_pid(const int32_t val) {
+    pid = val;
+  }
+
+  bool operator == (const Chord_find_successor_args & rhs) const
+  {
+    if (!(pid == rhs.pid))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_find_successor_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_find_successor_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_find_successor_pargs {
+ public:
+
+
+  virtual ~Chord_find_successor_pargs() throw() {}
+
+  const int32_t* pid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_find_successor_result__isset {
+  _Chord_find_successor_result__isset() : success(false) {}
+  bool success;
+} _Chord_find_successor_result__isset;
+
+class Chord_find_successor_result {
+ public:
+
+  Chord_find_successor_result() {
+  }
+
+  virtual ~Chord_find_successor_result() throw() {}
+
+  successor success;
+
+  _Chord_find_successor_result__isset __isset;
+
+  void __set_success(const successor& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_find_successor_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_find_successor_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_find_successor_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_find_successor_presult__isset {
+  _Chord_find_successor_presult__isset() : success(false) {}
+  bool success;
+} _Chord_find_successor_presult__isset;
+
+class Chord_find_successor_presult {
+ public:
+
+
+  virtual ~Chord_find_successor_presult() throw() {}
+
+  successor* success;
+
+  _Chord_find_successor_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_find_predecessor_args__isset {
+  _Chord_find_predecessor_args__isset() : pid(false) {}
+  bool pid;
+} _Chord_find_predecessor_args__isset;
+
+class Chord_find_predecessor_args {
+ public:
+
+  Chord_find_predecessor_args() : pid(0) {
+  }
+
+  virtual ~Chord_find_predecessor_args() throw() {}
+
+  int32_t pid;
+
+  _Chord_find_predecessor_args__isset __isset;
+
+  void __set_pid(const int32_t val) {
+    pid = val;
+  }
+
+  bool operator == (const Chord_find_predecessor_args & rhs) const
+  {
+    if (!(pid == rhs.pid))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_find_predecessor_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_find_predecessor_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_find_predecessor_pargs {
+ public:
+
+
+  virtual ~Chord_find_predecessor_pargs() throw() {}
+
+  const int32_t* pid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_find_predecessor_result__isset {
+  _Chord_find_predecessor_result__isset() : success(false) {}
+  bool success;
+} _Chord_find_predecessor_result__isset;
+
+class Chord_find_predecessor_result {
+ public:
+
+  Chord_find_predecessor_result() {
+  }
+
+  virtual ~Chord_find_predecessor_result() throw() {}
+
+  neighbor success;
+
+  _Chord_find_predecessor_result__isset __isset;
+
+  void __set_success(const neighbor& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_find_predecessor_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_find_predecessor_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_find_predecessor_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_find_predecessor_presult__isset {
+  _Chord_find_predecessor_presult__isset() : success(false) {}
+  bool success;
+} _Chord_find_predecessor_presult__isset;
+
+class Chord_find_predecessor_presult {
+ public:
+
+
+  virtual ~Chord_find_predecessor_presult() throw() {}
+
+  neighbor* success;
+
+  _Chord_find_predecessor_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_closest_preceding_finger_args__isset {
+  _Chord_closest_preceding_finger_args__isset() : pid(false) {}
+  bool pid;
+} _Chord_closest_preceding_finger_args__isset;
+
+class Chord_closest_preceding_finger_args {
+ public:
+
+  Chord_closest_preceding_finger_args() : pid(0) {
+  }
+
+  virtual ~Chord_closest_preceding_finger_args() throw() {}
+
+  int32_t pid;
+
+  _Chord_closest_preceding_finger_args__isset __isset;
+
+  void __set_pid(const int32_t val) {
+    pid = val;
+  }
+
+  bool operator == (const Chord_closest_preceding_finger_args & rhs) const
+  {
+    if (!(pid == rhs.pid))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_closest_preceding_finger_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_closest_preceding_finger_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_closest_preceding_finger_pargs {
+ public:
+
+
+  virtual ~Chord_closest_preceding_finger_pargs() throw() {}
+
+  const int32_t* pid;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_closest_preceding_finger_result__isset {
+  _Chord_closest_preceding_finger_result__isset() : success(false) {}
+  bool success;
+} _Chord_closest_preceding_finger_result__isset;
+
+class Chord_closest_preceding_finger_result {
+ public:
+
+  Chord_closest_preceding_finger_result() {
+  }
+
+  virtual ~Chord_closest_preceding_finger_result() throw() {}
+
+  neighbor success;
+
+  _Chord_closest_preceding_finger_result__isset __isset;
+
+  void __set_success(const neighbor& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_closest_preceding_finger_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_closest_preceding_finger_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_closest_preceding_finger_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_closest_preceding_finger_presult__isset {
+  _Chord_closest_preceding_finger_presult__isset() : success(false) {}
+  bool success;
+} _Chord_closest_preceding_finger_presult__isset;
+
+class Chord_closest_preceding_finger_presult {
+ public:
+
+
+  virtual ~Chord_closest_preceding_finger_presult() throw() {}
+
+  neighbor* success;
+
+  _Chord_closest_preceding_finger_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+
+class Chord_get_info_args {
+ public:
+
+  Chord_get_info_args() {
+  }
+
+  virtual ~Chord_get_info_args() throw() {}
+
+
+  bool operator == (const Chord_get_info_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const Chord_get_info_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_get_info_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_get_info_pargs {
+ public:
+
+
+  virtual ~Chord_get_info_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_get_info_result__isset {
+  _Chord_get_info_result__isset() : success(false) {}
+  bool success;
+} _Chord_get_info_result__isset;
+
+class Chord_get_info_result {
+ public:
+
+  Chord_get_info_result() {
+  }
+
+  virtual ~Chord_get_info_result() throw() {}
+
+  neighbor success;
+
+  _Chord_get_info_result__isset __isset;
+
+  void __set_success(const neighbor& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_get_info_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_get_info_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_get_info_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_get_info_presult__isset {
+  _Chord_get_info_presult__isset() : success(false) {}
+  bool success;
+} _Chord_get_info_presult__isset;
+
+class Chord_get_info_presult {
+ public:
+
+
+  virtual ~Chord_get_info_presult() throw() {}
+
+  neighbor* success;
+
+  _Chord_get_info_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -569,9 +1017,21 @@ class ChordClient : virtual public ChordIf {
   void get_table();
   void send_get_table();
   void recv_get_table();
-  void test_method(node& _return);
-  void send_test_method();
-  void recv_test_method(node& _return);
+  void join_network(successor& _return, const int32_t pid);
+  void send_join_network(const int32_t pid);
+  void recv_join_network(successor& _return);
+  void find_successor(successor& _return, const int32_t pid);
+  void send_find_successor(const int32_t pid);
+  void recv_find_successor(successor& _return);
+  void find_predecessor(neighbor& _return, const int32_t pid);
+  void send_find_predecessor(const int32_t pid);
+  void recv_find_predecessor(neighbor& _return);
+  void closest_preceding_finger(neighbor& _return, const int32_t pid);
+  void send_closest_preceding_finger(const int32_t pid);
+  void recv_closest_preceding_finger(neighbor& _return);
+  void get_info(neighbor& _return);
+  void send_get_info();
+  void recv_get_info(neighbor& _return);
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -590,7 +1050,11 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
   void process_del_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_test_method(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_join_network(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_find_successor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_find_predecessor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_closest_preceding_finger(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_get_info(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   ChordProcessor(boost::shared_ptr<ChordIf> iface) :
     iface_(iface) {
@@ -599,7 +1063,11 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
     processMap_["del_file"] = &ChordProcessor::process_del_file;
     processMap_["get_file"] = &ChordProcessor::process_get_file;
     processMap_["get_table"] = &ChordProcessor::process_get_table;
-    processMap_["test_method"] = &ChordProcessor::process_test_method;
+    processMap_["join_network"] = &ChordProcessor::process_join_network;
+    processMap_["find_successor"] = &ChordProcessor::process_find_successor;
+    processMap_["find_predecessor"] = &ChordProcessor::process_find_predecessor;
+    processMap_["closest_preceding_finger"] = &ChordProcessor::process_closest_preceding_finger;
+    processMap_["get_info"] = &ChordProcessor::process_get_info;
   }
 
   virtual bool process(boost::shared_ptr<apache::thrift::protocol::TProtocol> piprot, boost::shared_ptr<apache::thrift::protocol::TProtocol> poprot, void* callContext);
@@ -664,14 +1132,62 @@ class ChordMultiface : virtual public ChordIf {
     }
   }
 
-  void test_method(node& _return) {
+  void join_network(successor& _return, const int32_t pid) {
     size_t sz = ifaces_.size();
     for (size_t i = 0; i < sz; ++i) {
       if (i == sz - 1) {
-        ifaces_[i]->test_method(_return);
+        ifaces_[i]->join_network(_return, pid);
         return;
       } else {
-        ifaces_[i]->test_method(_return);
+        ifaces_[i]->join_network(_return, pid);
+      }
+    }
+  }
+
+  void find_successor(successor& _return, const int32_t pid) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->find_successor(_return, pid);
+        return;
+      } else {
+        ifaces_[i]->find_successor(_return, pid);
+      }
+    }
+  }
+
+  void find_predecessor(neighbor& _return, const int32_t pid) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->find_predecessor(_return, pid);
+        return;
+      } else {
+        ifaces_[i]->find_predecessor(_return, pid);
+      }
+    }
+  }
+
+  void closest_preceding_finger(neighbor& _return, const int32_t pid) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->closest_preceding_finger(_return, pid);
+        return;
+      } else {
+        ifaces_[i]->closest_preceding_finger(_return, pid);
+      }
+    }
+  }
+
+  void get_info(neighbor& _return) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->get_info(_return);
+        return;
+      } else {
+        ifaces_[i]->get_info(_return);
       }
     }
   }
