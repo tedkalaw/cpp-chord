@@ -245,19 +245,20 @@ class predecessor {
 };
 
 typedef struct _key_and_node__isset {
-  _key_and_node__isset() : key(false), node_id(false), success(false) {}
+  _key_and_node__isset() : key(false), node_id(false), success(false), data(false) {}
   bool key;
   bool node_id;
   bool success;
+  bool data;
 } _key_and_node__isset;
 
 class key_and_node {
  public:
 
-  static const char* ascii_fingerprint; // = "E0991C843E3F9D01A30FF59D9FBC2CAF";
-  static const uint8_t binary_fingerprint[16]; // = {0xE0,0x99,0x1C,0x84,0x3E,0x3F,0x9D,0x01,0xA3,0x0F,0xF5,0x9D,0x9F,0xBC,0x2C,0xAF};
+  static const char* ascii_fingerprint; // = "8220B0A040CF420E767040EB2631CB83";
+  static const uint8_t binary_fingerprint[16]; // = {0x82,0x20,0xB0,0xA0,0x40,0xCF,0x42,0x0E,0x76,0x70,0x40,0xEB,0x26,0x31,0xCB,0x83};
 
-  key_and_node() : key(0), node_id(0), success(0) {
+  key_and_node() : key(0), node_id(0), success(0), data("") {
   }
 
   virtual ~key_and_node() throw() {}
@@ -265,6 +266,7 @@ class key_and_node {
   int32_t key;
   int32_t node_id;
   bool success;
+  std::string data;
 
   _key_and_node__isset __isset;
 
@@ -280,6 +282,10 @@ class key_and_node {
     success = val;
   }
 
+  void __set_data(const std::string& val) {
+    data = val;
+  }
+
   bool operator == (const key_and_node & rhs) const
   {
     if (!(key == rhs.key))
@@ -287,6 +293,8 @@ class key_and_node {
     if (!(node_id == rhs.node_id))
       return false;
     if (!(success == rhs.success))
+      return false;
+    if (!(data == rhs.data))
       return false;
     return true;
   }

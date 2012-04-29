@@ -36,7 +36,8 @@ struct predecessor
 struct key_and_node{
   1: i32 key,
   2: i32 node_id,
-  3: bool success
+  3: bool success,
+  4: string data
 }
 
 struct UserProfile {
@@ -63,15 +64,17 @@ service Chord
 	key_and_node add_file(1: string filename, 2: string data),
 	key_and_node del_file(1: string filename),
 	void get_table(),
-        void get_file(1: i32 key, 2: string data),
+        void transfer_file(1: i32 key, 2: string data),
+        key_and_node snatch_file(1: i32 key),
+        key_and_node get_file(1: string filename),
+        key_and_node remove_file(1: i32 key),
         successor get_successor(),
         successor join_network(1: i32 pid),
         predecessor current_pred(),
         void notify(1: i32 pid, 2: i32 new_port),
         successor find_successor(1: i32 pid),
         neighbor find_predecessor(1: i32 pid),
-        neighbor closest_preceding_finger(1: i32 pid),
-        neighbor get_info()
+        neighbor closest_preceding_finger(1: i32 pid)
 }
 
 

@@ -78,6 +78,19 @@ class ChordHandler : virtual public ChordIf {
     this->start();
   }
 
+  void snatch_file(key_and_node& _return, const int32_t key){
+    map<int, string>::iterator it = data_store.find(key);
+    _return.key = key;
+    _return.node_id = this->id;
+    if(it == data_store.end()){
+      _return.success = false;
+    }
+    else{
+      _return.data = data_store[key];
+      _return.success = true;
+    }
+  }
+
   void add_node() {
     // Your implementation goes here
     //printf("RPC\n");
@@ -94,12 +107,18 @@ class ChordHandler : virtual public ChordIf {
     else{
       successor succ;
       find_successor(succ, key);
-      Node* temp = new Node(succ.id, succ.port);
-      temp->open_connection();
-      temp->connection->get_file(key, data);
-      temp->close_connection();
-      _return.node_id = succ.id;
-      delete temp;
+      if(succ.id == this->id){
+        data_store[key] = data;
+        _return.node_id = this->id;
+      }
+      else{
+        Node* temp = new Node(succ.id, succ.port);
+        temp->open_connection();
+        temp->connection->transfer_file(key, data);
+        temp->close_connection();
+        _return.node_id = succ.id;
+        delete temp;
+      }
     }
     _return.key = key;
   }
@@ -116,18 +135,75 @@ class ChordHandler : virtual public ChordIf {
         _return.node_id = this->id;
         _return.success = true;
       }
+      else{
+        if(this->finger_table->at(SUCCESSOR) == NULL){
+          _return.key = key;
+          _return.node_id = this->id;
+          _return.success = false;
+        }
+      }
     }
     else{
-      if(this->finger_table->at(SUCCESSOR) == NULL){
+      successor succ;
+      find_successor(succ, key);
+      if(succ.id == this->id){
+        snatch_file(_return, key);
+      }
+      Node* temp = new Node(succ.id, succ.port);
+      pthread_mutex_lock(&transport_mutex);
+      temp->open_connection();
+      temp->connection->remove_file(_return, key);
+      temp->close_connection();
+      pthread_mutex_unlock(&transport_mutex);
+    }
+  }
+
+  void remove_file(key_and_node& _return, const int32_t key){
+    map<int, string>::iterator it = data_store.find(key);
+    _return.key = key;
+    _return.node_id = this->id;
+    if(it == data_store.end()){
+      _return.success = false;
+    }
+    else{
+      data_store.erase(it);
+      _return.success = true;
+    }
+  }
+
+  void get_file(key_and_node& _return, const string& filename){
+    int key = generate_sha1(filename);
+    map<int, string>::iterator it;
+    if(this->finger_table->at(SUCCESSOR) == NULL){
+      it = data_store.find(key);
+      if(it != data_store.end()){
+        _return.data = data_store[key];
+        _return.key = key;
+        _return.node_id = this->id;
+        _return.success = true;
+      }
+      else{
         _return.key = key;
         _return.node_id = this->id;
         _return.success = false;
       }
     }
+    else{
+      successor succ;
+      find_successor(succ, key);
+      if(succ.id == this->id){
+        snatch_file(_return, key);
+      }
+      Node* temp = new Node(succ.id, succ.port);
+      pthread_mutex_lock(&transport_mutex);
+      temp->open_connection();
+      temp->connection->snatch_file(_return, key);
+      temp->close_connection();
+      pthread_mutex_unlock(&transport_mutex);
+    }
   }
 
-
-  void get_file(const int32_t key, const string& data) {
+  void transfer_file(const int32_t key, const string& data) {
     data_store[key] = data;
   }
 
@@ -156,7 +232,7 @@ class ChordHandler : virtual public ChordIf {
           if(val <= pid){
             pthread_mutex_lock(&transport_mutex);
             new_node->open_connection();
-            new_node->connection->get_file(val, it->second);
+            new_node->connection->transfer_file(val, it->second);
             new_node->close_connection();
             pthread_mutex_unlock(&transport_mutex);
             data_store.erase(it);
@@ -235,21 +311,14 @@ class ChordHandler : virtual public ChordIf {
       entry = this->finger_table->at(i);
       if(entry == NULL && pid == this->id) break;
       if(entry != NULL && (this->in_range(this->id, pid, entry->id))){
-        //pass to next node
-        /*
-        pthread_mutex_lock(&transport_mutex);
-        entry->open_connection();
-        entry->connection->closest_preceding_finger(_return, pid);
-        entry->close_connection();
-        pthread_mutex_unlock(&transport_mutex);
-        */
-
         _return.id = entry->id;
         _return.port = entry->port;
         successor succ;
+        pthread_mutex_lock(&transport_mutex);
         entry->open_connection();
         entry->connection->get_successor(succ);
         entry->close_connection();
+        pthread_mutex_unlock(&transport_mutex);
         _return.succ_id = succ.id;
         _return.succ_port = succ.port;
         return;
@@ -272,14 +341,7 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  void get_info(neighbor& _return){
-
-  }
-
   //class functions
-  bool is_introducer(){
-    return (this->introducer_port != -1);
-  } 
   int get_port(){
     return this->port;
   }
@@ -461,7 +523,7 @@ ChordHandler* init_node(int argc, char** argv){
   int m = -1;
   int introducer_port = -1;
   int num;
-  int stabilize_interval = 2;
+  int stabilize_interval = 1;
   int fix_interval = 1;
 
   //cout << argc << endl;

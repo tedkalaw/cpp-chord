@@ -244,6 +244,27 @@ string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
   return s.str();
 }
 
+string get_GET_FILE_result_as_string(const char *fname,
+    const int32_t key,
+    const bool found,
+    const int32_t nodeId,
+    const char *fdata)
+{
+  std::stringstream s;
+  s << "fname= " << fname << "\n";
+  s << "key= " << key << "\n";
+  if (found) {
+
+    s << "stored at node= " << nodeId << "\n";
+    s << "fdata= " << fdata << "\n";
+  }
+  else {
+
+    s << "file not found\n";
+  }
+  return s.str();
+}
+
 void set_args(int argc, char **argv){
   string arg;
   bool valid = false;
@@ -320,16 +341,15 @@ int main(int argc, char **argv) {
         boost::split(strs, input, boost::is_any_of(" "));
 	
         string output;
+        key_and_node text;
 
         if(strs[0] == "ADD_FILE"){
           printf("in add file\n");
-          key_and_node text;
           client.add_file(text, strs[1], strs[2]);
           output = get_ADD_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id);
           cout << output << endl;
         }
         else if(strs[0] == "DEL_FILE"){
-          key_and_node text;
           client.del_file(text, strs[1]);
           output = get_DEL_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id, 
               text.success);
@@ -337,42 +357,14 @@ int main(int argc, char **argv) {
         } else if(strs[0] == "ADD_NODE"){
           create_node(boost::lexical_cast<int>(strs[1]));
         }
+        else if(strs[0] == "GET_FILE"){
+          client.get_file(text, strs[1]);
+          output = get_GET_FILE_result_as_string(strs[1].c_str(), text.key, 
+              text.success, text.node_id, text.data.c_str());
+          cout << output << endl;
 
-	//we want to add a node
-        /*
-	if(strncmp(input, "ADD_NODE", 8) == 0){
-		client.add_node();
-	}
-
-	//want to add a file 
-	else if(strncmp(input, "ADD_FILE", 8) == 0){
-		client.add_file("hi", "hi");
-	}
-
-	//want to delete a file 
-	else if(strncmp(input, "DEL_FILE", 8) == 0){
-                client.del_file();
         }
 
-	//want to get a file
-	else if(strncmp(input, "GET_FILE", 8) ==0){
-		client.get_file();
-	}
-
-	//want to get the table 
-	else if(strncmp(input, "GET_TABLE", 9) == 0){
-		client.get_table();
-	}
-
-	//exit 
-	else if(strncmp(input, "EXIT", 4) == 0){
-		break;
-	}
-
-	else{
-		printf("Something went wrong\n");
-	}
-        */
 
 	//i go cray
 	printf("\n\n\n\n\n");

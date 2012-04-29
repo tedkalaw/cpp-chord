@@ -19,7 +19,10 @@ class ChordIf {
   virtual void add_file(key_and_node& _return, const std::string& filename, const std::string& data) = 0;
   virtual void del_file(key_and_node& _return, const std::string& filename) = 0;
   virtual void get_table() = 0;
-  virtual void get_file(const int32_t key, const std::string& data) = 0;
+  virtual void transfer_file(const int32_t key, const std::string& data) = 0;
+  virtual void snatch_file(key_and_node& _return, const int32_t key) = 0;
+  virtual void get_file(key_and_node& _return, const std::string& filename) = 0;
+  virtual void remove_file(key_and_node& _return, const int32_t key) = 0;
   virtual void get_successor(successor& _return) = 0;
   virtual void join_network(successor& _return, const int32_t pid) = 0;
   virtual void current_pred(predecessor& _return) = 0;
@@ -27,7 +30,6 @@ class ChordIf {
   virtual void find_successor(successor& _return, const int32_t pid) = 0;
   virtual void find_predecessor(neighbor& _return, const int32_t pid) = 0;
   virtual void closest_preceding_finger(neighbor& _return, const int32_t pid) = 0;
-  virtual void get_info(neighbor& _return) = 0;
 };
 
 class ChordIfFactory {
@@ -69,7 +71,16 @@ class ChordNull : virtual public ChordIf {
   void get_table() {
     return;
   }
-  void get_file(const int32_t /* key */, const std::string& /* data */) {
+  void transfer_file(const int32_t /* key */, const std::string& /* data */) {
+    return;
+  }
+  void snatch_file(key_and_node& /* _return */, const int32_t /* key */) {
+    return;
+  }
+  void get_file(key_and_node& /* _return */, const std::string& /* filename */) {
+    return;
+  }
+  void remove_file(key_and_node& /* _return */, const int32_t /* key */) {
     return;
   }
   void get_successor(successor& /* _return */) {
@@ -91,9 +102,6 @@ class ChordNull : virtual public ChordIf {
     return;
   }
   void closest_preceding_finger(neighbor& /* _return */, const int32_t /* pid */) {
-    return;
-  }
-  void get_info(neighbor& /* _return */) {
     return;
   }
 };
@@ -471,24 +479,24 @@ class Chord_get_table_presult {
 
 };
 
-typedef struct _Chord_get_file_args__isset {
-  _Chord_get_file_args__isset() : key(false), data(false) {}
+typedef struct _Chord_transfer_file_args__isset {
+  _Chord_transfer_file_args__isset() : key(false), data(false) {}
   bool key;
   bool data;
-} _Chord_get_file_args__isset;
+} _Chord_transfer_file_args__isset;
 
-class Chord_get_file_args {
+class Chord_transfer_file_args {
  public:
 
-  Chord_get_file_args() : key(0), data("") {
+  Chord_transfer_file_args() : key(0), data("") {
   }
 
-  virtual ~Chord_get_file_args() throw() {}
+  virtual ~Chord_transfer_file_args() throw() {}
 
   int32_t key;
   std::string data;
 
-  _Chord_get_file_args__isset __isset;
+  _Chord_transfer_file_args__isset __isset;
 
   void __set_key(const int32_t val) {
     key = val;
@@ -498,11 +506,208 @@ class Chord_get_file_args {
     data = val;
   }
 
-  bool operator == (const Chord_get_file_args & rhs) const
+  bool operator == (const Chord_transfer_file_args & rhs) const
   {
     if (!(key == rhs.key))
       return false;
     if (!(data == rhs.data))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_transfer_file_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_transfer_file_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_transfer_file_pargs {
+ public:
+
+
+  virtual ~Chord_transfer_file_pargs() throw() {}
+
+  const int32_t* key;
+  const std::string* data;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_transfer_file_result {
+ public:
+
+  Chord_transfer_file_result() {
+  }
+
+  virtual ~Chord_transfer_file_result() throw() {}
+
+
+  bool operator == (const Chord_transfer_file_result & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const Chord_transfer_file_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_transfer_file_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_transfer_file_presult {
+ public:
+
+
+  virtual ~Chord_transfer_file_presult() throw() {}
+
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_snatch_file_args__isset {
+  _Chord_snatch_file_args__isset() : key(false) {}
+  bool key;
+} _Chord_snatch_file_args__isset;
+
+class Chord_snatch_file_args {
+ public:
+
+  Chord_snatch_file_args() : key(0) {
+  }
+
+  virtual ~Chord_snatch_file_args() throw() {}
+
+  int32_t key;
+
+  _Chord_snatch_file_args__isset __isset;
+
+  void __set_key(const int32_t val) {
+    key = val;
+  }
+
+  bool operator == (const Chord_snatch_file_args & rhs) const
+  {
+    if (!(key == rhs.key))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_snatch_file_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_snatch_file_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_snatch_file_pargs {
+ public:
+
+
+  virtual ~Chord_snatch_file_pargs() throw() {}
+
+  const int32_t* key;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_snatch_file_result__isset {
+  _Chord_snatch_file_result__isset() : success(false) {}
+  bool success;
+} _Chord_snatch_file_result__isset;
+
+class Chord_snatch_file_result {
+ public:
+
+  Chord_snatch_file_result() {
+  }
+
+  virtual ~Chord_snatch_file_result() throw() {}
+
+  key_and_node success;
+
+  _Chord_snatch_file_result__isset __isset;
+
+  void __set_success(const key_and_node& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_snatch_file_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_snatch_file_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_snatch_file_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_snatch_file_presult__isset {
+  _Chord_snatch_file_presult__isset() : success(false) {}
+  bool success;
+} _Chord_snatch_file_presult__isset;
+
+class Chord_snatch_file_presult {
+ public:
+
+
+  virtual ~Chord_snatch_file_presult() throw() {}
+
+  key_and_node* success;
+
+  _Chord_snatch_file_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_get_file_args__isset {
+  _Chord_get_file_args__isset() : filename(false) {}
+  bool filename;
+} _Chord_get_file_args__isset;
+
+class Chord_get_file_args {
+ public:
+
+  Chord_get_file_args() : filename("") {
+  }
+
+  virtual ~Chord_get_file_args() throw() {}
+
+  std::string filename;
+
+  _Chord_get_file_args__isset __isset;
+
+  void __set_filename(const std::string& val) {
+    filename = val;
+  }
+
+  bool operator == (const Chord_get_file_args & rhs) const
+  {
+    if (!(filename == rhs.filename))
       return false;
     return true;
   }
@@ -524,13 +729,16 @@ class Chord_get_file_pargs {
 
   virtual ~Chord_get_file_pargs() throw() {}
 
-  const int32_t* key;
-  const std::string* data;
+  const std::string* filename;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
 };
 
+typedef struct _Chord_get_file_result__isset {
+  _Chord_get_file_result__isset() : success(false) {}
+  bool success;
+} _Chord_get_file_result__isset;
 
 class Chord_get_file_result {
  public:
@@ -540,9 +748,18 @@ class Chord_get_file_result {
 
   virtual ~Chord_get_file_result() throw() {}
 
+  key_and_node success;
 
-  bool operator == (const Chord_get_file_result & /* rhs */) const
+  _Chord_get_file_result__isset __isset;
+
+  void __set_success(const key_and_node& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_get_file_result & rhs) const
   {
+    if (!(success == rhs.success))
+      return false;
     return true;
   }
   bool operator != (const Chord_get_file_result &rhs) const {
@@ -556,6 +773,10 @@ class Chord_get_file_result {
 
 };
 
+typedef struct _Chord_get_file_presult__isset {
+  _Chord_get_file_presult__isset() : success(false) {}
+  bool success;
+} _Chord_get_file_presult__isset;
 
 class Chord_get_file_presult {
  public:
@@ -563,6 +784,117 @@ class Chord_get_file_presult {
 
   virtual ~Chord_get_file_presult() throw() {}
 
+  key_and_node* success;
+
+  _Chord_get_file_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _Chord_remove_file_args__isset {
+  _Chord_remove_file_args__isset() : key(false) {}
+  bool key;
+} _Chord_remove_file_args__isset;
+
+class Chord_remove_file_args {
+ public:
+
+  Chord_remove_file_args() : key(0) {
+  }
+
+  virtual ~Chord_remove_file_args() throw() {}
+
+  int32_t key;
+
+  _Chord_remove_file_args__isset __isset;
+
+  void __set_key(const int32_t val) {
+    key = val;
+  }
+
+  bool operator == (const Chord_remove_file_args & rhs) const
+  {
+    if (!(key == rhs.key))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_remove_file_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_remove_file_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_remove_file_pargs {
+ public:
+
+
+  virtual ~Chord_remove_file_pargs() throw() {}
+
+  const int32_t* key;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_remove_file_result__isset {
+  _Chord_remove_file_result__isset() : success(false) {}
+  bool success;
+} _Chord_remove_file_result__isset;
+
+class Chord_remove_file_result {
+ public:
+
+  Chord_remove_file_result() {
+  }
+
+  virtual ~Chord_remove_file_result() throw() {}
+
+  key_and_node success;
+
+  _Chord_remove_file_result__isset __isset;
+
+  void __set_success(const key_and_node& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_remove_file_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_remove_file_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_remove_file_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_remove_file_presult__isset {
+  _Chord_remove_file_presult__isset() : success(false) {}
+  bool success;
+} _Chord_remove_file_presult__isset;
+
+class Chord_remove_file_presult {
+ public:
+
+
+  virtual ~Chord_remove_file_presult() throw() {}
+
+  key_and_node* success;
+
+  _Chord_remove_file_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -1285,100 +1617,6 @@ class Chord_closest_preceding_finger_presult {
 
 };
 
-
-class Chord_get_info_args {
- public:
-
-  Chord_get_info_args() {
-  }
-
-  virtual ~Chord_get_info_args() throw() {}
-
-
-  bool operator == (const Chord_get_info_args & /* rhs */) const
-  {
-    return true;
-  }
-  bool operator != (const Chord_get_info_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const Chord_get_info_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class Chord_get_info_pargs {
- public:
-
-
-  virtual ~Chord_get_info_pargs() throw() {}
-
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _Chord_get_info_result__isset {
-  _Chord_get_info_result__isset() : success(false) {}
-  bool success;
-} _Chord_get_info_result__isset;
-
-class Chord_get_info_result {
- public:
-
-  Chord_get_info_result() {
-  }
-
-  virtual ~Chord_get_info_result() throw() {}
-
-  neighbor success;
-
-  _Chord_get_info_result__isset __isset;
-
-  void __set_success(const neighbor& val) {
-    success = val;
-  }
-
-  bool operator == (const Chord_get_info_result & rhs) const
-  {
-    if (!(success == rhs.success))
-      return false;
-    return true;
-  }
-  bool operator != (const Chord_get_info_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const Chord_get_info_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-typedef struct _Chord_get_info_presult__isset {
-  _Chord_get_info_presult__isset() : success(false) {}
-  bool success;
-} _Chord_get_info_presult__isset;
-
-class Chord_get_info_presult {
- public:
-
-
-  virtual ~Chord_get_info_presult() throw() {}
-
-  neighbor* success;
-
-  _Chord_get_info_presult__isset __isset;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
 class ChordClient : virtual public ChordIf {
  public:
   ChordClient(boost::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
@@ -1411,9 +1649,18 @@ class ChordClient : virtual public ChordIf {
   void get_table();
   void send_get_table();
   void recv_get_table();
-  void get_file(const int32_t key, const std::string& data);
-  void send_get_file(const int32_t key, const std::string& data);
-  void recv_get_file();
+  void transfer_file(const int32_t key, const std::string& data);
+  void send_transfer_file(const int32_t key, const std::string& data);
+  void recv_transfer_file();
+  void snatch_file(key_and_node& _return, const int32_t key);
+  void send_snatch_file(const int32_t key);
+  void recv_snatch_file(key_and_node& _return);
+  void get_file(key_and_node& _return, const std::string& filename);
+  void send_get_file(const std::string& filename);
+  void recv_get_file(key_and_node& _return);
+  void remove_file(key_and_node& _return, const int32_t key);
+  void send_remove_file(const int32_t key);
+  void recv_remove_file(key_and_node& _return);
   void get_successor(successor& _return);
   void send_get_successor();
   void recv_get_successor(successor& _return);
@@ -1435,9 +1682,6 @@ class ChordClient : virtual public ChordIf {
   void closest_preceding_finger(neighbor& _return, const int32_t pid);
   void send_closest_preceding_finger(const int32_t pid);
   void recv_closest_preceding_finger(neighbor& _return);
-  void get_info(neighbor& _return);
-  void send_get_info();
-  void recv_get_info(neighbor& _return);
  protected:
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   boost::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -1455,7 +1699,10 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
   void process_add_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_del_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_transfer_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_snatch_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_remove_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_successor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_join_network(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_current_pred(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -1463,7 +1710,6 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
   void process_find_successor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_find_predecessor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_closest_preceding_finger(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_get_info(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   ChordProcessor(boost::shared_ptr<ChordIf> iface) :
     iface_(iface) {
@@ -1471,7 +1717,10 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
     processMap_["add_file"] = &ChordProcessor::process_add_file;
     processMap_["del_file"] = &ChordProcessor::process_del_file;
     processMap_["get_table"] = &ChordProcessor::process_get_table;
+    processMap_["transfer_file"] = &ChordProcessor::process_transfer_file;
+    processMap_["snatch_file"] = &ChordProcessor::process_snatch_file;
     processMap_["get_file"] = &ChordProcessor::process_get_file;
+    processMap_["remove_file"] = &ChordProcessor::process_remove_file;
     processMap_["get_successor"] = &ChordProcessor::process_get_successor;
     processMap_["join_network"] = &ChordProcessor::process_join_network;
     processMap_["current_pred"] = &ChordProcessor::process_current_pred;
@@ -1479,7 +1728,6 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
     processMap_["find_successor"] = &ChordProcessor::process_find_successor;
     processMap_["find_predecessor"] = &ChordProcessor::process_find_predecessor;
     processMap_["closest_preceding_finger"] = &ChordProcessor::process_closest_preceding_finger;
-    processMap_["get_info"] = &ChordProcessor::process_get_info;
   }
 
   virtual bool process(boost::shared_ptr<apache::thrift::protocol::TProtocol> piprot, boost::shared_ptr<apache::thrift::protocol::TProtocol> poprot, void* callContext);
@@ -1547,10 +1795,46 @@ class ChordMultiface : virtual public ChordIf {
     }
   }
 
-  void get_file(const int32_t key, const std::string& data) {
+  void transfer_file(const int32_t key, const std::string& data) {
     size_t sz = ifaces_.size();
     for (size_t i = 0; i < sz; ++i) {
-      ifaces_[i]->get_file(key, data);
+      ifaces_[i]->transfer_file(key, data);
+    }
+  }
+
+  void snatch_file(key_and_node& _return, const int32_t key) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->snatch_file(_return, key);
+        return;
+      } else {
+        ifaces_[i]->snatch_file(_return, key);
+      }
+    }
+  }
+
+  void get_file(key_and_node& _return, const std::string& filename) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->get_file(_return, filename);
+        return;
+      } else {
+        ifaces_[i]->get_file(_return, filename);
+      }
+    }
+  }
+
+  void remove_file(key_and_node& _return, const int32_t key) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      if (i == sz - 1) {
+        ifaces_[i]->remove_file(_return, key);
+        return;
+      } else {
+        ifaces_[i]->remove_file(_return, key);
+      }
     }
   }
 
@@ -1629,18 +1913,6 @@ class ChordMultiface : virtual public ChordIf {
         return;
       } else {
         ifaces_[i]->closest_preceding_finger(_return, pid);
-      }
-    }
-  }
-
-  void get_info(neighbor& _return) {
-    size_t sz = ifaces_.size();
-    for (size_t i = 0; i < sz; ++i) {
-      if (i == sz - 1) {
-        ifaces_[i]->get_info(_return);
-        return;
-      } else {
-        ifaces_[i]->get_info(_return);
       }
     }
   }

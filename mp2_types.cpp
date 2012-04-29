@@ -312,8 +312,8 @@ uint32_t predecessor::write(::apache::thrift::protocol::TProtocol* oprot) const 
   return xfer;
 }
 
-const char* key_and_node::ascii_fingerprint = "E0991C843E3F9D01A30FF59D9FBC2CAF";
-const uint8_t key_and_node::binary_fingerprint[16] = {0xE0,0x99,0x1C,0x84,0x3E,0x3F,0x9D,0x01,0xA3,0x0F,0xF5,0x9D,0x9F,0xBC,0x2C,0xAF};
+const char* key_and_node::ascii_fingerprint = "8220B0A040CF420E767040EB2631CB83";
+const uint8_t key_and_node::binary_fingerprint[16] = {0x82,0x20,0xB0,0xA0,0x40,0xCF,0x42,0x0E,0x76,0x70,0x40,0xEB,0x26,0x31,0xCB,0x83};
 
 uint32_t key_and_node::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -359,6 +359,14 @@ uint32_t key_and_node::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->data);
+          this->__isset.data = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -382,6 +390,9 @@ uint32_t key_and_node::write(::apache::thrift::protocol::TProtocol* oprot) const
   xfer += oprot->writeFieldEnd();
   xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_BOOL, 3);
   xfer += oprot->writeBool(this->success);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("data", ::apache::thrift::protocol::T_STRING, 4);
+  xfer += oprot->writeString(this->data);
   xfer += oprot->writeFieldEnd();
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();

@@ -42,9 +42,24 @@ class ChordHandler : virtual public ChordIf {
     printf("get_table\n");
   }
 
-  void get_file(const int32_t key, const std::string& data) {
+  void transfer_file(const int32_t key, const std::string& data) {
+    // Your implementation goes here
+    printf("transfer_file\n");
+  }
+
+  void snatch_file(key_and_node& _return, const int32_t key) {
+    // Your implementation goes here
+    printf("snatch_file\n");
+  }
+
+  void get_file(key_and_node& _return, const std::string& filename) {
     // Your implementation goes here
     printf("get_file\n");
+  }
+
+  void remove_file(key_and_node& _return, const int32_t key) {
+    // Your implementation goes here
+    printf("remove_file\n");
   }
 
   void get_successor(successor& _return) {
@@ -80,11 +95,6 @@ class ChordHandler : virtual public ChordIf {
   void closest_preceding_finger(neighbor& _return, const int32_t pid) {
     // Your implementation goes here
     printf("closest_preceding_finger\n");
-  }
-
-  void get_info(neighbor& _return) {
-    // Your implementation goes here
-    printf("get_info\n");
   }
 
 };

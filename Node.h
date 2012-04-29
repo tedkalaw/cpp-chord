@@ -42,7 +42,6 @@ class Node {
 };
 
 Node::Node(int id, int port){
-  printf("%d::%d\n", id, port);
   this->id = id;
   this->port = port;
   this->socket = shared_ptr<TSocket>(new TSocket("localhost", port));
@@ -58,7 +57,6 @@ void Node::notify(int new_id, int new_port){
 }
 
 void Node::current_pred(predecessor& _return){
-  printf("Port: %d\n", this->port);
   open_connection();
   this->connection->current_pred(_return);
   close_connection();
