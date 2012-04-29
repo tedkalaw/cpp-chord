@@ -58,11 +58,12 @@ class ChordHandler : virtual public ChordIf {
           returned.port);
       transport->close();
       this->set_succ(returned.id, returned.port);
-
     }
     else{
       this->introducer = NULL;
     }
+
+
   }
 
   void add_node() {
@@ -204,8 +205,23 @@ class ChordHandler : virtual public ChordIf {
     return this->predecessor;
   }
 
+  void* test_func(void* input){
+
+  }
+
+  void go(){
+    pthread_t test;
+
+  }
+
   void set_pred(int port){
     this->predecessor = port;
+  }
+
+  void stabilize(){
+    sleep(1);
+    printf("Boom\n");
+
   }
 
   ChordClient* introducer;
@@ -213,9 +229,6 @@ class ChordHandler : virtual public ChordIf {
   int pow;
 
   //verify current node's successor
-  void stabilize(){
-
-  }
 
  private:
   int m;
@@ -223,6 +236,7 @@ class ChordHandler : virtual public ChordIf {
   int introducer_port;
   int port;
   int predecessor;
+  pthread_t mthread;
 
 };
 
@@ -271,9 +285,7 @@ int main(int argc, char **argv) {
   printf("Starting session on port %d\n", nodeh->get_port());
 
   //spawn thread to take care of stabilization stuff
-  boost::thread t();
   
-
   server.serve();
   return 0;
 }

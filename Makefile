@@ -1,6 +1,6 @@
 GEN_SRC := Chord.cpp mp2_constants.cpp mp2_types.cpp
 GEN_OBJ := $(patsubst %.cpp,%.o, $(GEN_SRC))
-CXX += -DHAVE_NETINET_IN_H -g
+CXX += -DHAVE_NETINET_IN_H -g -lpthread
 THRIFT_DIR := /class/ece428/libs/include/thrift
 BOOST_DIR := /usr/local/include
 

@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   else return 0;
   */
 
-  create_node();
+  //create_node();
 
   //we can change this later
   /* these next three lines are standard */
