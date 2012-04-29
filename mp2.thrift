@@ -62,19 +62,16 @@ service Chord
 	void add_node(),
 	key_and_node add_file(1: string filename, 2: string data),
 	key_and_node del_file(1: string filename),
-	void get_file(),
 	void get_table(),
+        void get_file(1: i32 key, 2: string data),
         successor get_successor(),
         successor join_network(1: i32 pid),
-        successor initiate_add_file(1: string filename, 2: string data),
         predecessor current_pred(),
         void notify(1: i32 pid, 2: i32 new_port),
         successor find_successor(1: i32 pid),
         neighbor find_predecessor(1: i32 pid),
         neighbor closest_preceding_finger(1: i32 pid),
         neighbor get_info()
-
-
 }
 
 

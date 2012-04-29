@@ -37,14 +37,14 @@ class ChordHandler : virtual public ChordIf {
     printf("del_file\n");
   }
 
-  void get_file() {
-    // Your implementation goes here
-    printf("get_file\n");
-  }
-
   void get_table() {
     // Your implementation goes here
     printf("get_table\n");
+  }
+
+  void get_file(const int32_t key, const std::string& data) {
+    // Your implementation goes here
+    printf("get_file\n");
   }
 
   void get_successor(successor& _return) {
@@ -55,11 +55,6 @@ class ChordHandler : virtual public ChordIf {
   void join_network(successor& _return, const int32_t pid) {
     // Your implementation goes here
     printf("join_network\n");
-  }
-
-  void initiate_add_file(successor& _return, const std::string& filename, const std::string& data) {
-    // Your implementation goes here
-    printf("initiate_add_file\n");
   }
 
   void current_pred(predecessor& _return) {

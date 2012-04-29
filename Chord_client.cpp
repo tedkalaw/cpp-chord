@@ -149,6 +149,9 @@ void create_node(int new_id){
       }
     }
   }
+
+  _transport->close();
+  printf("Successfully added node %d\n", new_id);
 }
 
 void test_args(){
@@ -331,6 +334,8 @@ int main(int argc, char **argv) {
           output = get_DEL_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id, 
               text.success);
           cout << output << endl;
+        } else if(strs[0] == "ADD_NODE"){
+          create_node(boost::lexical_cast<int>(strs[1]));
         }
 
 	//we want to add a node
