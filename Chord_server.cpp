@@ -16,6 +16,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
+#include <utility>
 #include <map>
 #include <utility>
 #include <boost/thread.hpp>
@@ -79,17 +80,28 @@ class ChordHandler : virtual public ChordIf {
   }
 
   void snatch_file(key_and_node& _return, const int32_t key){
-    map<int, string>::iterator it = data_store.find(key);
+    map<int, pair<string, string> >::iterator it = data_table.find(key);
     _return.key = key;
     _return.node_id = this->id;
-    if(it == data_store.end()){
+    if(it == data_table.end()){
       _return.success = false;
     }
     else{
-      _return.data = data_store[key];
+      _return.data = data_table[key].first;
       _return.success = true;
     }
   }
+
+  void get_key_table(string& _return){
+    stringstream s;
+    map<int, pair<string, string> >::iterator it = data_table.begin();
+    s << "keys table: \n";
+  }
+
+  void get_finger_table(string& _return){
+
+  }
+
 
   void add_node() {
     // Your implementation goes here
@@ -101,20 +113,20 @@ class ChordHandler : virtual public ChordIf {
     int key = generate_sha1(filename);
     //if we're the only node in the system,
     if(this->finger_table->at(SUCCESSOR) == NULL){
-      data_store[key] = data;
+      data_table[key] = pair<string, string>(data, filename);
       _return.node_id = this->id;
     }
     else{
       successor succ;
       find_successor(succ, key);
       if(succ.id == this->id){
-        data_store[key] = data;
+        data_table[key] = pair<string, string>(data, filename);
         _return.node_id = this->id;
       }
       else{
         Node* temp = new Node(succ.id, succ.port);
         temp->open_connection();
-        temp->connection->transfer_file(key, data);
+        temp->connection->transfer_file(key, data, filename);
         temp->close_connection();
         _return.node_id = succ.id;
         delete temp;
@@ -126,11 +138,11 @@ class ChordHandler : virtual public ChordIf {
 
   void del_file(key_and_node& _return, const std::string& filename) {
     int key = generate_sha1(filename);
-    map<int, string>::iterator it = data_store.find(key);
-    if(it != data_store.end()){
+    map<int, pair<string, string> >::iterator it = data_table.find(key);
+    if(it != data_table.end()){
       //success
       if(this->finger_table->at(SUCCESSOR) == NULL){
-        data_store.erase(it);
+        data_table.erase(it);
         _return.key = key;
         _return.node_id = this->id;
         _return.success = true;
@@ -147,37 +159,39 @@ class ChordHandler : virtual public ChordIf {
       successor succ;
       find_successor(succ, key);
       if(succ.id == this->id){
-        snatch_file(_return, key);
+        remove_file(_return, key);
       }
+      else{
       Node* temp = new Node(succ.id, succ.port);
       pthread_mutex_lock(&transport_mutex);
       temp->open_connection();
       temp->connection->remove_file(_return, key);
       temp->close_connection();
       pthread_mutex_unlock(&transport_mutex);
+      }
     }
   }
 
   void remove_file(key_and_node& _return, const int32_t key){
-    map<int, string>::iterator it = data_store.find(key);
+    map<int, pair<string, string> >::iterator it = data_table.find(key);
     _return.key = key;
     _return.node_id = this->id;
-    if(it == data_store.end()){
+    if(it == data_table.end()){
       _return.success = false;
     }
     else{
-      data_store.erase(it);
+      data_table.erase(it);
       _return.success = true;
     }
   }
 
   void get_file(key_and_node& _return, const string& filename){
     int key = generate_sha1(filename);
-    map<int, string>::iterator it;
+    map<int, pair<string, string> >::iterator it;
     if(this->finger_table->at(SUCCESSOR) == NULL){
-      it = data_store.find(key);
-      if(it != data_store.end()){
-        _return.data = data_store[key];
+      it = data_table.find(key);
+      if(it != data_table.end()){
+        _return.data = data_table[key].first;
         _return.key = key;
         _return.node_id = this->id;
         _return.success = true;
@@ -203,8 +217,8 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  void transfer_file(const int32_t key, const string& data) {
-    data_store[key] = data;
+  void transfer_file(const int32_t key, const string& data, const string& filename) {
+    data_table[key] = pair<string, string>(data, filename);
   }
 
   void get_table() {
@@ -226,16 +240,17 @@ class ChordHandler : virtual public ChordIf {
         Node* new_node = new Node(pid, new_port);
         int val;
 
-        map<int, string>::iterator it;
-        for(it = data_store.begin(); it != data_store.end(); ++it){
+        map<int, pair<string, string> >::iterator it;
+        for(it = data_table.begin(); it != data_table.end(); ++it){
           val = it->first;
           if(val <= pid){
             pthread_mutex_lock(&transport_mutex);
             new_node->open_connection();
-            new_node->connection->transfer_file(val, it->second);
+            pair<string, string> _data = it->second;
+            new_node->connection->transfer_file(val, _data.first, _data.second);
             new_node->close_connection();
             pthread_mutex_unlock(&transport_mutex);
-            data_store.erase(it);
+            data_table.erase(it);
           }
         }
       }
@@ -413,7 +428,7 @@ class ChordHandler : virtual public ChordIf {
   int power;
   predecessor pred;
   //****
-  map<int, string> data_store;
+  map<int, pair<string,string> > data_table;
 
   //verify current node's successor
   //
