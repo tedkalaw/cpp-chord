@@ -36,7 +36,7 @@ using namespace  ::mp2;
 class ChordHandler : virtual public ChordIf {
  public:
   ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1,
-      int s_interval = 3, int f_interval = 5) {
+      int s_interval = 2, int f_interval = 5) {
     this->m = m;
     this->introducer_port = introducer_port;
     this->id = id;
@@ -56,10 +56,15 @@ class ChordHandler : virtual public ChordIf {
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
       shared_ptr<TTransport> transport(new TBufferedTransport(socket));
       shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+      printf("FUCK ME\n");
       this->introducer = new ChordClient(protocol);
+      printf("FUCK MEr2\n");
       transport->open();
+      printf("FUCK MEr3\n");
       successor returned;
+      printf("FUCK M4\n");
       this->introducer->join_network(returned, this->id);
+      printf("FUCK M5\n");
       printf("Introducer told me that my successor is %d on port %d\n", returned.id,
           returned.port);
       transport->close();
@@ -105,7 +110,7 @@ class ChordHandler : virtual public ChordIf {
 
   void notify(const int32_t pid, const int32_t new_port) {
     ////printf("Process %d claims to be my predecessor.\n", pid);
-    if(pid != this->id && (pred.id == NO_PREDECESSOR || in_range(pred.id, this->id, pid))){
+    if(pid != this->id && (pred.id == this->id || in_range(pred.id, this->id, pid))){
     printf("I am %d and %d is trying to be my predecessor\n", this->id, pid);
       if(pred.id != pid){
         pred.id = pid;
@@ -123,7 +128,11 @@ class ChordHandler : virtual public ChordIf {
   //we can assume that add_node won't be called with an id that has alreayd 
   //been used
   void join_network(successor& _return, const int32_t pid){
+    printf("*************\n");
+    printf("*************\n");
     printf("Node %d just connected.\n", pid);
+    printf("*************\n");
+    printf("*************\n");
     this->find_successor(_return, pid);
   }
 
@@ -138,27 +147,40 @@ class ChordHandler : virtual public ChordIf {
   //this function isn't necessary right now, but we'll keep it
   //so that the code is consistent with the white paper
   void find_predecessor(neighbor& _return, const int32_t pid) {
-    //printf("%d is trying to find %d's predecessor\n", this->id, pid);
+    printf("%d is trying to find %d's predecessor\n", this->id, pid);
     this->closest_preceding_finger(_return, pid);
   }
 
-  bool in_range(int start, int end, int test){
-    bool returned = ((test > start) && (test <= this->pow)) || ((test < end) && (test >= 0));
-    printf("Checking if %d is on (%d, %d)\n", test, start, end);
+  bool in_range(int left, int right, int t){
+    bool returned;
+    if(left > right){
+      returned = (t > right) && (t < left);
+    }
+    else{
+      returned = (t > left) && (t < right);
+    }
+    //printf("Checking if %d is on (%d, %d)\n", test, start, end);
+    return returned;
   }
 
   void closest_preceding_finger(neighbor& _return, const int32_t pid){
-    //printf("%d is trying to find %d's closest preceding finger\n", this->id, pid);
-    int i = this->m;
+    printf("*************\n");
+    printf("%d is trying to find %d's closest preceding finger\n", this->id, pid);
+    printf("*************\n");
+    int i = this->m-1;
     Node* entry;
-    while(--i){
+    while(i>=0){
       entry = this->finger_table->at(i);
-      if(entry == NULL) continue;
-      if(this->in_range(this->id, pid, entry->id)){
+      if(entry != NULL && (this->in_range(this->id, pid, entry->id))){
         //pass to next node
+        printf("going into loop\n");
+        entry->open_connection();
         entry->connection->closest_preceding_finger(_return, pid);
+        entry->close_connection();
+        printf("Trying to return id: %d, port: %d\n", _return.id, _return.port);
         return;
       }
+      i--;
     }
     //current node is closest
     _return.id = this->get_id();
@@ -214,7 +236,7 @@ class ChordHandler : virtual public ChordIf {
     Node* curr = this->finger_table->at(0);
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
-      printf("making new node that points to %d::%d\n", id, port);
+      //printf("making new node that points to %d::%d\n", id, port);
       (*(this->finger_table))[0] = new Node(id, port);
     }
     else{
@@ -223,7 +245,7 @@ class ChordHandler : virtual public ChordIf {
         delete curr;
         (*(this->finger_table))[0] = new Node(id, port);
 
-        printf("Telling %d that it is my successor\n", id);
+        //printf("Telling %d that it is my successor\n", id);
         curr = this->finger_table->at(0);
         curr->notify(this->id, this->port);
       }
@@ -271,20 +293,20 @@ class ChordHandler : virtual public ChordIf {
       if(successor != NULL){
         printf("Successor's id: %d\n", successor->id);
         successor->current_pred(next);
-        printf("Just called current_pred on %d\n", successor->id);
+        //printf("Just called current_pred on %d\n", successor->id);
         //if our successor has no predecessor
-        printf("Successor's predecessor: %d\n", next.id);
+        //printf("Successor's predecessor: %d\n", next.id);
         if(next.id != -1 && next.id != this->id && in_range(this->id, successor->id, next.id)){
           this->set_succ(next.id, next.port);
           successor = this->finger_table->at(SUCCESSOR);
         }
-        printf("about to notify my successor from stab; %d::%d\n", successor->id, this->id);
+        //printf("about to notify my successor from stab; %d::%d\n", successor->id, this->id);
         successor->notify(this->id, this->port);
       }
       else{
-        printf("Successor is empty\n");
+        //printf("Successor is empty\n");
         if(pred.id != this->id){
-          printf("Pred: %d::%d\n", pred.id, pred.port);
+          //printf("Pred: %d::%d\n", pred.id, pred.port);
           this->set_succ(pred.id, pred.port);
         }
       }
