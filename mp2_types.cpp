@@ -312,6 +312,82 @@ uint32_t predecessor::write(::apache::thrift::protocol::TProtocol* oprot) const 
   return xfer;
 }
 
+const char* key_and_node::ascii_fingerprint = "E0991C843E3F9D01A30FF59D9FBC2CAF";
+const uint8_t key_and_node::binary_fingerprint[16] = {0xE0,0x99,0x1C,0x84,0x3E,0x3F,0x9D,0x01,0xA3,0x0F,0xF5,0x9D,0x9F,0xBC,0x2C,0xAF};
+
+uint32_t key_and_node::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->key);
+          this->__isset.key = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->node_id);
+          this->__isset.node_id = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->success);
+          this->__isset.success = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t key_and_node::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("key_and_node");
+  xfer += oprot->writeFieldBegin("key", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->key);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("node_id", ::apache::thrift::protocol::T_I32, 2);
+  xfer += oprot->writeI32(this->node_id);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_BOOL, 3);
+  xfer += oprot->writeBool(this->success);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
 const char* UserProfile::ascii_fingerprint = "3368C2F81F2FEF71F11EDACDB2A3ECEF";
 const uint8_t UserProfile::binary_fingerprint[16] = {0x33,0x68,0xC2,0xF8,0x1F,0x2F,0xEF,0x71,0xF1,0x1E,0xDA,0xCD,0xB2,0xA3,0xEC,0xEF};
 

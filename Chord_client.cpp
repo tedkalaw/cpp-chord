@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -35,6 +36,7 @@ string log_conf = "";
 int num_arguments = 0;
 char* m_arg;
 char** args;
+int introductor_port = 0;
 
 void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTransport>& transport,
     boost::shared_ptr<TProtocol>& protocol, int port){
@@ -100,7 +102,36 @@ void create_introducer(){
   while(!done){
     switch(child = fork()){
       case 0: insert_args(0, new_port, 0);
-              printf("execing\n");
+              execv("./node", args);
+              break;
+
+      default: sleep(1);
+    }
+
+    if(child != 0){
+      init_sockets(_socket, _transport, _protocol, new_port);
+      try{
+        _transport->open();
+        break;
+      }
+      catch(apache::thrift::transport::TTransportException& e){
+        new_port = rand() % 8000 + 1999;
+        continue;
+      }
+    }
+  }
+  
+  introductor_port = new_port;
+
+}
+
+void create_node(int new_id){
+  bool done = false;
+  pid_t child;
+  new_port = rand() % 8000 + 1999;
+  while(!done){
+    switch(child = fork()){
+      case 0: insert_args(new_id, new_port, introductor_port);
               execv("./node", args);
 
       default: sleep(1);
@@ -118,23 +149,6 @@ void create_introducer(){
       }
     }
   }
-}
-
-void create_node(){
-  switch(pid_t childPid = fork()){
-    case -1: break;
-
-    //child
-    case 0: execv("./node", NULL);
-            exit(1);
-
-    //parent
-    default: cout << "i am the parent" << endl;
-             sleep(1);
-             return;
-
-  }
-
 }
 
 void test_args(){
@@ -204,6 +218,28 @@ void test_args(){
 
 }
 
+string get_DEL_FILE_result_as_string(const char* fname, const int32_t key, const int32_t nodeID, bool success){
+  std::stringstream s;
+  s << "fname =" << fname << "\n";
+  s << "key= " << key << "\n";
+  if(success){
+    s << "was stored at node= " << nodeID << "\n";
+    s << "deleted\n";
+  }
+  else{
+    s << "file not found\n";
+  }
+  return s.str();
+}
+
+string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
+    const int32_t nodeID){
+  std::stringstream s;
+  s << "fname= " << fname << "\n";
+  s << "key= " << key << "\n";
+  s << "added to node= " << nodeID << "\n";
+  return s.str();
+}
 
 void set_args(int argc, char **argv){
   string arg;
@@ -211,7 +247,6 @@ void set_args(int argc, char **argv){
   bool intro = false;
   for(int i=1; i<argc; i+=2){
     arg = argv[i];
-    printf("Looking at %s\n", arg.c_str());
     if(arg == "--m"){
       arg = argv[i+1];
       m = arg;
@@ -246,53 +281,12 @@ void set_args(int argc, char **argv){
   }
 }
 
-void build_argv(char**& argv){
-  argv = new char* [2*num_arguments + 1];
-  int len;
-
-  test_args();
-
-
-  int next_pos = 9;
-  if(stabilize_interval != ""){
-    len = strlen("--stabilizeInterval") + 1;
-    argv[next_pos] = new char[len];
-    strncpy(argv[next_pos], "--stabilizeInterval", len);
-    len = stabilize_interval.length() + 1;
-    argv[next_pos+1]  = new char[len];
-    strncpy(argv[next_pos+1], stabilize_interval.c_str(), len);
-    next_pos+=2;
-  }
-
-  if(fix_interval != ""){
-    len = strlen("--fixInterval") + 1;
-    argv[next_pos] = new char[len];
-    strncpy(argv[next_pos], "--fixInterval", len);
-    len = fix_interval.length() + 1;
-    argv[next_pos+1] = new char[len];
-    strncpy(argv[next_pos+1], fix_interval.c_str(), len);
-    next_pos+=2;
-  }
-
-  if(log_conf != ""){
-   len = strlen("--logConf") + 1;
-   argv[next_pos] = new char[len];
-   len = log_conf.length() + 1;
-   argv[next_pos+1] = new char[len];
-   strncpy(argv[next_pos], log_conf.c_str(), len);
-   next_pos+=2;
-  }
-
-}
-
 int main(int argc, char **argv) {
 
   srand(time(NULL));
 
   set_args(argc, argv);
-  printf("%d\n", num_arguments);
   test_args();
-  printf("%s\n", args[0]);
   if(attached == -1){
     create_introducer();
   }
@@ -301,7 +295,6 @@ int main(int argc, char **argv) {
     _transport -> open();
   }
 
-  return 0;
   bool valid = false;
   //init_sockets(socket, transport, protocol, 9090);
 
@@ -312,24 +305,43 @@ int main(int argc, char **argv) {
   while(1){
 
 	//40 should be enough, whatever we can change it 
-	char input[40];
+        string input;
 	fputs("Select an option...\n ", stdout);
 	printf("ADD_NODE <node ID(s)> \n");
 	printf("ADD_FILE <filename><data> \n");
 	printf("DEL_FILE <filename>\n");
 	printf("GET_FILE <filename>\n");
 	printf("GET_TABLE <node ID>\n");
-	fgets(input, sizeof input, stdin); 
-        
+        getline(cin, input);
+        std::vector<std::string> strs;
+        boost::split(strs, input, boost::is_any_of(" "));
 	
+        string output;
+
+        if(strs[0] == "ADD_FILE"){
+          printf("in add file\n");
+          key_and_node text;
+          client.add_file(text, strs[1], strs[2]);
+          output = get_ADD_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id);
+          cout << output << endl;
+        }
+        else if(strs[0] == "DEL_FILE"){
+          key_and_node text;
+          client.del_file(text, strs[1]);
+          output = get_DEL_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id, 
+              text.success);
+          cout << output << endl;
+        }
+
 	//we want to add a node
+        /*
 	if(strncmp(input, "ADD_NODE", 8) == 0){
 		client.add_node();
 	}
 
 	//want to add a file 
 	else if(strncmp(input, "ADD_FILE", 8) == 0){
-		client.add_file();
+		client.add_file("hi", "hi");
 	}
 
 	//want to delete a file 
@@ -355,6 +367,7 @@ int main(int argc, char **argv) {
 	else{
 		printf("Something went wrong\n");
 	}
+        */
 
 	//i go cray
 	printf("\n\n\n\n\n");

@@ -27,12 +27,12 @@ class ChordHandler : virtual public ChordIf {
     printf("add_node\n");
   }
 
-  void add_file() {
+  void add_file(key_and_node& _return, const std::string& filename, const std::string& data) {
     // Your implementation goes here
     printf("add_file\n");
   }
 
-  void del_file() {
+  void del_file(key_and_node& _return, const std::string& filename) {
     // Your implementation goes here
     printf("del_file\n");
   }
@@ -50,6 +50,11 @@ class ChordHandler : virtual public ChordIf {
   void join_network(successor& _return, const int32_t pid) {
     // Your implementation goes here
     printf("join_network\n");
+  }
+
+  void initiate_add_file(successor& _return, const std::string& filename, const std::string& data) {
+    // Your implementation goes here
+    printf("initiate_add_file\n");
   }
 
   void current_pred(predecessor& _return) {

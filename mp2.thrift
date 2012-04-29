@@ -33,11 +33,18 @@ struct predecessor
   2: i32 port
 }
 
+struct key_and_node{
+  1: i32 key,
+  2: i32 node_id,
+  3: bool success
+}
+
 struct UserProfile {
   1: i32 uid,
   2: string name,
   3: string blurb
 }
+
 
 
 //service in which a node talks to a node
@@ -47,11 +54,12 @@ service Chord
 	//this may be all we need so far
 	//now to determine who does what
 	void add_node(),
-	void add_file(),
-	void del_file(),
+	key_and_node add_file(1: string filename, 2: string data),
+	key_and_node del_file(1: string filename),
 	void get_file(),
 	void get_table(),
         successor join_network(1: i32 pid),
+        successor initiate_add_file(1: string filename, 2: string data),
         predecessor current_pred(),
         void notify(1: i32 pid, 2: i32 new_port),
         successor find_successor(1: i32 pid),

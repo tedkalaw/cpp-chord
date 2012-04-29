@@ -244,6 +244,63 @@ class predecessor {
 
 };
 
+typedef struct _key_and_node__isset {
+  _key_and_node__isset() : key(false), node_id(false), success(false) {}
+  bool key;
+  bool node_id;
+  bool success;
+} _key_and_node__isset;
+
+class key_and_node {
+ public:
+
+  static const char* ascii_fingerprint; // = "E0991C843E3F9D01A30FF59D9FBC2CAF";
+  static const uint8_t binary_fingerprint[16]; // = {0xE0,0x99,0x1C,0x84,0x3E,0x3F,0x9D,0x01,0xA3,0x0F,0xF5,0x9D,0x9F,0xBC,0x2C,0xAF};
+
+  key_and_node() : key(0), node_id(0), success(0) {
+  }
+
+  virtual ~key_and_node() throw() {}
+
+  int32_t key;
+  int32_t node_id;
+  bool success;
+
+  _key_and_node__isset __isset;
+
+  void __set_key(const int32_t val) {
+    key = val;
+  }
+
+  void __set_node_id(const int32_t val) {
+    node_id = val;
+  }
+
+  void __set_success(const bool val) {
+    success = val;
+  }
+
+  bool operator == (const key_and_node & rhs) const
+  {
+    if (!(key == rhs.key))
+      return false;
+    if (!(node_id == rhs.node_id))
+      return false;
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const key_and_node &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const key_and_node & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
 typedef struct _UserProfile__isset {
   _UserProfile__isset() : uid(false), name(false), blurb(false) {}
   bool uid;
