@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <boost/lexical_cast.hpp>
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -16,32 +17,106 @@ using namespace apache::thrift::transport;
 //namespace specified
 using namespace mp2; 
 
-int introducer_port;
+int new_port;
 
+ChordClient* introducer;
+
+boost::shared_ptr<TSocket> _socket;
+boost::shared_ptr<TTransport> _transport;
+boost::shared_ptr<TProtocol> _protocol;
+
+int attached = -1;
 int starting_port = -1;
-int attach_node = -1;
-int m = -1;
-int stabilize_interval = -1;
-int fix_interval = -1;
+string attach_node = "";
+string m = "";
+string stabilize_interval = "";
+string fix_interval = "";
 string log_conf = "";
+int num_arguments = 0;
+char* m_arg;
+char** args;
 
-bool valid_flags(int argc, char **argv){
-  if(argc < 2){
-    std::cerr << "Needs at least --m flag" << endl;
-    return false;
+void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTransport>& transport,
+    boost::shared_ptr<TProtocol>& protocol, int port){
+
+  socket = boost::shared_ptr<TSocket>(new TSocket("localhost", port));
+  transport = boost::shared_ptr<TTransport> (new TBufferedTransport(socket));
+  protocol = boost::shared_ptr<TProtocol> (new TBinaryProtocol(transport));
+}
+
+void attach_to_node(int port){
+  init_sockets(_socket, _transport, _protocol, port);
+}
+
+void place_args(int intro_port, int id, int port){
+  string arg;
+  int len;
+  arg = boost::lexical_cast<string>(id);
+  len = arg.length() + 1;
+  args[6] = new char[len];
+  strncpy(args[6], arg.c_str(), len);
+
+  arg = boost::lexical_cast<string>(intro_port);
+  len = arg.length() + 1;
+  args[2] = new char[len];
+  strncpy(args[2], arg.c_str(), len);
+
+  arg = boost::lexical_cast<string>(port);
+  len = arg.length() + 1;
+  args[8] = new char[len];
+  strncpy(args[8], arg.c_str(), len);
+}
+
+void print_args(){
+  for(int i=0; i<(2 * num_arguments) - 1; i++){
+    printf("%s\n", args[i]);
   }
-  else{
-    bool valid = false;
-    for(int i=1; i<argc; i++){
-      std::string arg = argv[i];
-      if(arg == "-m"){
-        valid = true;
+}
+
+void insert_args(int id, int port, int intro_port){
+  string a;
+  a = boost::lexical_cast<string>(id);
+  int len;
+
+  len = a.length() + 1;
+  args[4] = new char[len];
+  strncpy(args[4], a.c_str(), len);
+
+  a = boost::lexical_cast<string>(port);
+  len = a.length() + 1;
+  args[6] = new char[len];
+  strncpy(args[6], a.c_str(), len);
+
+  a = boost::lexical_cast<string>(intro_port);
+  len = a.length() + 1;
+  args[8] = new char[len];
+  strncpy(args[8], a.c_str(), len);
+
+}
+
+void create_introducer(){
+  bool done = false;
+  pid_t child;
+  while(!done){
+    switch(child = fork()){
+      case 0: insert_args(0, new_port, 0);
+              printf("execing\n");
+              execv("./node", args);
+
+      default: sleep(1);
+    }
+
+    if(child != 0){
+      init_sockets(_socket, _transport, _protocol, new_port);
+      try{
+        _transport->open();
         break;
       }
+      catch(apache::thrift::transport::TTransportException& e){
+        new_port = rand() % 8000 + 1999;
+        continue;
+      }
     }
-    if(valid) return true;
-    std::cerr << "Needs at --m flag" << endl;
-    return false;
   }
 }
 
@@ -62,93 +137,175 @@ void create_node(){
 
 }
 
-void set_args(int argc, char **argv, char**& arguments){
+void test_args(){
+  int num = 10 + 2 * num_arguments;
+  int end = num - 1;
+  args = new char* [num];
+  int len;
+  len = strlen("./listener") + 1;
+  args[0] = new char[len];
+  strncpy(args[0], "./listener", len);
+
+  len = strlen("--m") + 1;
+  args[1] = new char[len];
+  strncpy(args[1], "--m", len);
+
+  len = m.length() + 1;
+  args[2] = new char[len];
+  strncpy(args[2], m.c_str(), len);
+
+  len = strlen("--id") + 1;
+  args[3] = new char[len];
+  strncpy(args[3], "--id", len);
+
+  len = strlen("--port") + 1;
+  args[5] = new char[len];
+  strncpy(args[5], "--port", len);
+
+  len = strlen("--introducerPort") + 1;
+  args[7] = new char[len];
+  strncpy(args[7], "--introducerPort", len);
+
+  int next_pos = 9;
+  if(stabilize_interval != ""){
+    len = strlen("--stabilizeInterval") + 1;
+    args[next_pos] = new char[len];
+    strncpy(args[next_pos], "--stabilizeInterval", len);
+
+    len = stabilize_interval.length() + 1;
+    args[next_pos+1] = new char[len];
+    strncpy(args[next_pos+1], stabilize_interval.c_str(), len);
+    next_pos += 2;
+  }
+
+  if(fix_interval != ""){
+    len = strlen("--fixInterval") + 1;
+    args[next_pos] = new char[len];
+    strncpy(args[next_pos], "--fixInterval", len);
+
+    len = fix_interval.length() + 1;
+    args[next_pos+1] = new char[len];
+    strncpy(args[next_pos+1], fix_interval.c_str(), len);
+    next_pos += 2;
+  }
+
+  if(log_conf != ""){
+    len = strlen("--logConf") + 1;
+    args[next_pos] = new char[len];
+    strncpy(args[next_pos], "--logConf", len);
+
+    len = log_conf.length() + 1;
+    args[next_pos+1] = new char[len];
+    strncpy(args[next_pos+1], log_conf.c_str(), len);
+    next_pos += 2;
+  }
+
+  args[next_pos] = NULL;
+
+}
+
+
+void set_args(int argc, char **argv){
   string arg;
   bool valid = false;
-  arguments = new char* [argc - 1];
+  bool intro = false;
   for(int i=1; i<argc; i+=2){
     arg = argv[i];
+    printf("Looking at %s\n", arg.c_str());
     if(arg == "--m"){
-      m = atoi(argv[i+1]);
-      valid = true;
-      arguments[i-1] = new char [4];
-      strncpy(arguments[i-1], "--m", 4);
+      arg = argv[i+1];
+      m = arg;
     }
     else if(arg == "--startingPort"){
-      starting_port = atoi(argv[i+1]);
-      arguments[i-1] = new char[15];
-      strncpy(arguments[i-1], "--startingPort", 15);
+      new_port = atoi(argv[i+1]);;
+      intro = true;
     }
     else if (arg == "--attachToNode"){
-      attach_node = atoi(argv[i+1]);
-      arguments[i-1] = new char[15];
-      strncpy(arguments[i-1], "--attachToNode", 15);
+      arg = argv[i+1];
+      attach_node = arg;
     }
     else if(arg == "--stabilizeInterval"){
-      stabilize_interval = atoi(argv[i+1]);
-      arguments[i-1] = new char[20];
-      strncpy(arguments[i-1], "--stabilizeInterval", 20);
+      arg = argv[i+1];
+      stabilize_interval = arg;
+      num_arguments++;
     }
     else if(arg == "--fixInterval"){
-      fix_interval = atoi(argv[i+1]);
-      arguments[i-1] = new char[14];
-      strncpy(arguments[i-1], "--fixInterval", 14);
+      arg = argv[i+1];
+      fix_interval = arg;
+      num_arguments++;
     }
     else if(arg == "--logConf"){
-      log_conf = atoi(argv[i+1]);
-      arguments[i-1] = new char[10];
-      strncpy(arguments[i-1], "--logConf", 10);
+      arg = argv[i+1];
+      log_conf = arg;
+      num_arguments++;
     }
-    arguments[i] = new char [strlen(argv[i+1])];
-    strncpy(arguments[i-1], argv[i+1]);
+  }
+
+  if(!intro){
+    new_port = rand() % 8000 + 1999;
   }
 }
 
-void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTransport>& transport,
-    boost::shared_ptr<TProtocol>& protocol){
+void build_argv(char**& argv){
+  argv = new char* [2*num_arguments + 1];
+  int len;
 
-  socket = boost::shared_ptr<TSocket>(new TSocket("localhost", 9090));
-  transport = boost::shared_ptr<TTransport> (new TBufferedTransport(socket));
-  protocol = boost::shared_ptr<TProtocol> (new TBinaryProtocol(transport));
+  test_args();
+
+
+  int next_pos = 9;
+  if(stabilize_interval != ""){
+    len = strlen("--stabilizeInterval") + 1;
+    argv[next_pos] = new char[len];
+    strncpy(argv[next_pos], "--stabilizeInterval", len);
+    len = stabilize_interval.length() + 1;
+    argv[next_pos+1]  = new char[len];
+    strncpy(argv[next_pos+1], stabilize_interval.c_str(), len);
+    next_pos+=2;
+  }
+
+  if(fix_interval != ""){
+    len = strlen("--fixInterval") + 1;
+    argv[next_pos] = new char[len];
+    strncpy(argv[next_pos], "--fixInterval", len);
+    len = fix_interval.length() + 1;
+    argv[next_pos+1] = new char[len];
+    strncpy(argv[next_pos+1], fix_interval.c_str(), len);
+    next_pos+=2;
+  }
+
+  if(log_conf != ""){
+   len = strlen("--logConf") + 1;
+   argv[next_pos] = new char[len];
+   len = log_conf.length() + 1;
+   argv[next_pos+1] = new char[len];
+   strncpy(argv[next_pos], log_conf.c_str(), len);
+   next_pos+=2;
+  }
+
 }
-
 
 int main(int argc, char **argv) {
 
-  /* server is listening on port 9090 */
-  /*
-  if(valid_flags(argc, argv)){
-    ChordListener listener = parse_args(argc, argv);
+  srand(time(NULL));
+
+  set_args(argc, argv);
+  printf("%d\n", num_arguments);
+  test_args();
+  printf("%s\n", args[0]);
+  if(attached == -1){
+    create_introducer();
   }
-  else return 0;
-  */
-
-  //create_node();
-
-  //we can change this later
-  /* these next three lines are standard */
-
-  char** args;
-  set_args(argc, argv, args);
+  else{
+    init_sockets(_socket, _transport, _protocol, attached);
+    _transport -> open();
+  }
 
   return 0;
   bool valid = false;
-  boost::shared_ptr<TSocket> socket;
-  boost::shared_ptr<TTransport> transport;
-  boost::shared_ptr<TProtocol> protocol;
-  init_sockets(socket, transport, protocol);
-  while(true){
-    //create a client 
-    try{
-      transport->open();
-      break;
-    }
-    catch(apache::thrift::transport::TTransportException& e){
-      cout << e.what() << endl;
-    }
-  }
+  //init_sockets(socket, transport, protocol, 9090);
 
-  ChordClient client(protocol);
+  ChordClient client(_protocol);
   //want to add the original introducer node
 
   printf("Welcome to node listener\n");
@@ -205,7 +362,7 @@ int main(int argc, char **argv) {
   }
 	
  
-  transport->close();
+  _transport->close();
 
   return 0;
 }

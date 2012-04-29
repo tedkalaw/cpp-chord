@@ -410,21 +410,36 @@ ChordHandler* init_node(int argc, char** argv){
   int m = -1;
   int introducer_port = -1;
   int num;
+  int stabilize_interval = 2;
+  int fix_interval = 1;
+
+  cout << argc << endl;
+  for(int i=0; i<argc; i++){
+    printf("%s\n", argv[i]);
+  }
 
   for(int i=1; i<argc; i+=2){
     num = atoi(argv[i+1]);
     string arg = argv[i];
     if(arg == "--m"){
+      printf("M: %d\n", num);
       m = num;
     }
     else if(arg == "--id"){
+      printf("My id: %d\n", num);
       id = num;
     }
     else if(arg == "--port"){
+      printf("My port: %d\n", num);
       port = num;
     }
     else if (arg== "--introducerPort"){
+      printf("Intro port: %d\n", num);
       introducer_port = num;
+    }
+    else if (arg == "--stabilizeInterval"){
+      printf("Stab interval: %d\n", num);
+      stabilize_interval = num;
     }
   }
 
@@ -434,10 +449,11 @@ ChordHandler* init_node(int argc, char** argv){
   }
 
   cout << "Successfully listening" << endl;
-  return (new ChordHandler(m, id, port, introducer_port));
+  return (new ChordHandler(m, id, port, introducer_port, stabilize_interval, fix_interval));
 }
 
 int main(int argc, char **argv) {
+  cout << "HI MANG\n" << endl;;
   ChordHandler* nodeh = init_node(argc, argv);
   shared_ptr<ChordHandler> handler(nodeh);
   shared_ptr<TProcessor> processor(new ChordProcessor(handler));
