@@ -32,11 +32,15 @@ using namespace ::apache::thrift::server;
 using boost::shared_ptr;
 
 using namespace  ::mp2;
+int _x;
+bool debugging = false;;
+
 
 class ChordHandler : virtual public ChordIf {
  public:
   ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1,
       int s_interval = 2, int f_interval = 1) {
+    _x = 0;
     this->m = m;
     this->introducer_port = introducer_port;
     this->id = id;
@@ -56,15 +60,10 @@ class ChordHandler : virtual public ChordIf {
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
       shared_ptr<TTransport> transport(new TBufferedTransport(socket));
       shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-      printf("FUCK ME\n");
       this->introducer = new ChordClient(protocol);
-      printf("FUCK MEr2\n");
       transport->open();
-      printf("FUCK MEr3\n");
       successor returned;
-      printf("FUCK M4\n");
       this->introducer->join_network(returned, this->id);
-      printf("FUCK M5\n");
       printf("Introducer told me that my successor is %d on port %d\n", returned.id,
           returned.port);
       transport->close();
@@ -74,6 +73,8 @@ class ChordHandler : virtual public ChordIf {
       this->introducer = NULL;
     }
 
+    pthread_mutex_init(&m_mutex, NULL);
+    pthread_mutex_init(&transport_mutex, NULL);
     this->start();
   }
 
@@ -154,35 +155,36 @@ class ChordHandler : virtual public ChordIf {
   bool in_range(int left, int right, int t){
     bool returned;
     if(left > right){
-      if(t > left){
+      if(t >= left){
         return (t == left) || (t <= pow);
       }
-      else if (t < right){
+      else if (t <= right){
         return (t==right) || (t>= 0);
       }
-      returned = (t > right) && (t < left);
     }
     else{
       returned = (t >= left) && (t <= right);
     }
-    printf("Checking if %d is on (%d, %d): %d\n", t, left, right, returned);
+
+    printf("%d: Checking if %d is on (%d, %d): %d\n", _x, t, left, right, returned);
+    _x++;
     return returned;
   }
 
   void closest_preceding_finger(neighbor& _return, const int32_t pid){
-    printf("*************\n");
-    printf("%d is trying to find %d's closest preceding finger\n", this->id, pid);
-    printf("*************\n");
     int i = this->m-1;
     Node* entry;
+    printf("In closest preceding finger\n");
     while(i>=0){
       entry = this->finger_table->at(i);
       if(entry == NULL && pid == this->id) break;
       if(entry != NULL && (this->in_range(this->id, pid, entry->id))){
         //pass to next node
+        pthread_mutex_lock(&transport_mutex);
         entry->open_connection();
         entry->connection->closest_preceding_finger(_return, pid);
         entry->close_connection();
+        pthread_mutex_unlock(&transport_mutex);
         return;
       }
       i--;
@@ -225,11 +227,14 @@ class ChordHandler : virtual public ChordIf {
   }
   
   void set_finger(int new_id, int new_port, int i){
+    pthread_mutex_lock(&m_mutex);
     Node* curr = this->finger_table->at(i);
     if(curr != NULL){
       printf("Old value: %d\n", curr->id);
-      if(curr->id == new_id)
+      if(curr->id == new_id){
+        pthread_mutex_unlock(&m_mutex);
         return;
+      }
       else
         delete curr;
     }
@@ -241,11 +246,14 @@ class ChordHandler : virtual public ChordIf {
       printf("Changing");
       (*(this->finger_table))[i] = new Node(new_id, new_port);
     }
+
+    pthread_mutex_unlock(&m_mutex);
   }
 
 
   //manage connection here?
   void set_succ(int id, int port){
+    pthread_mutex_lock(&m_mutex);
     Node* curr = this->finger_table->at(0);
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
@@ -260,9 +268,12 @@ class ChordHandler : virtual public ChordIf {
 
         //printf("Telling %d that it is my successor\n", id);
         curr = this->finger_table->at(0);
+        pthread_mutex_lock(&transport_mutex);
         curr->notify(this->id, this->port);
+        pthread_mutex_lock(&transport_mutex);
       }
     }
+    pthread_mutex_unlock(&m_mutex);
   }
 
 
@@ -285,6 +296,24 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
+  vector<int>* atomic_get_finger_table(){
+    pthread_mutex_lock(&m_mutex);
+    pthread_mutex_unlock(&m_mutex);
+  }
+
+  vector<int>* atomic_write_finger_table(int i){
+
+  }
+
+  Node* atomic_get_node(int i){
+    Node* returned;
+    pthread_mutex_lock(&m_mutex);
+    returned = this->finger_table->at(i);
+    pthread_mutex_unlock(&m_mutex);
+    return returned;
+  }
+
+
  private:
   int m;
   int id;
@@ -294,6 +323,8 @@ class ChordHandler : virtual public ChordIf {
   int fix_interval;
   pthread_t stabilize_thread;
   pthread_t fix_thread;
+  pthread_mutex_t m_mutex;
+  pthread_mutex_t transport_mutex;
   vector<int>* start_values;
 
   void stabilize(){
@@ -302,19 +333,21 @@ class ChordHandler : virtual public ChordIf {
     while(true){
       sleep(this->stabilize_interval);
       printf("My predecessor: %d\n", this->pred.id);
-      successor = this->finger_table->at(SUCCESSOR);
+      successor = atomic_get_node(SUCCESSOR);
       if(successor != NULL){
         printf("Successor's id: %d\n", successor->id);
+        pthread_mutex_lock(&transport_mutex);
         successor->current_pred(next);
-        //printf("Just called current_pred on %d\n", successor->id);
+        pthread_mutex_unlock(&transport_mutex);
         //if our successor has no predecessor
-        //printf("Successor's predecessor: %d\n", next.id);
-        if(next.id != -1 && next.id != this->id && in_range(this->id, successor->id, next.id)){
+        if(next.id != this->id && in_range(this->id, successor->id, next.id)){
           this->set_succ(next.id, next.port);
           successor = this->finger_table->at(SUCCESSOR);
         }
         //printf("about to notify my successor from stab; %d::%d\n", successor->id, this->id);
+        pthread_mutex_lock(&transport_mutex);
         successor->notify(this->id, this->port);
+        pthread_mutex_unlock(&transport_mutex);
       }
       else{
         //printf("Successor is empty\n");
@@ -353,7 +386,7 @@ class ChordHandler : virtual public ChordIf {
       find_successor(next, curr_start);
       printf("New finger is id: %d, port: %d at %d\n", next.id, next.port, pick);
       set_finger(next.id, next.port, pick);
-      print_fingers();
+      //print_fingers();
     }
   }
 
@@ -420,4 +453,3 @@ int main(int argc, char **argv) {
   server.serve();
   return 0;
 }
-

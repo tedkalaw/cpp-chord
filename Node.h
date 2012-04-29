@@ -33,6 +33,7 @@ class Node {
     void current_pred(predecessor&);
     void open_connection();
     void close_connection();
+    pthread_mutex_t* m_mutex;
 
   private:
     shared_ptr<TSocket> socket;
@@ -73,29 +74,3 @@ void Node::close_connection(){
 Node::~Node(){
   delete this->connection;
 }
-    /*
-    while(true){
-      sleep(this->stabilize_interval);
-      printf("My predecessor: %d\n", this->pred.id);
-      successor = this->finger_table->at(SUCCESSOR);
-      if(successor != NULL){
-        printf("Successor's id: %d\n", successor->id);
-        successor->current_pred(next);
-        printf("Just called current_pred on %d\n", successor->id);
-        //if our successor has no predecessor
-        printf("Successor's predecessor: %d\n", next.id);
-        if(next.id != -1 && next.id != this->id && in_range(this->id, successor->id, next.id)){
-          this->set_succ(next.id, next.port);
-          successor = this->finger_table->at(SUCCESSOR);
-        }
-        printf("about to notify my successor from stab; %d::%d\n", successor->id, this->id);
-        successor->notify(this->id);
-      }
-      else{
-        printf("Successor is empty\n");
-        if(pred.id != NO_PREDECESSOR){
-          this->set_succ(pred.id, pred.port);
-        }
-      }
-    }
-    */
