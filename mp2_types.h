@@ -358,6 +358,63 @@ class UserProfile {
 
 };
 
+typedef struct _previous_try__isset {
+  _previous_try__isset() : left(false), right(false), t(false) {}
+  bool left;
+  bool right;
+  bool t;
+} _previous_try__isset;
+
+class previous_try {
+ public:
+
+  static const char* ascii_fingerprint; // = "6435B39C87AB0E30F30BEDEFD7328C0D";
+  static const uint8_t binary_fingerprint[16]; // = {0x64,0x35,0xB3,0x9C,0x87,0xAB,0x0E,0x30,0xF3,0x0B,0xED,0xEF,0xD7,0x32,0x8C,0x0D};
+
+  previous_try() : left(0), right(0), t(0) {
+  }
+
+  virtual ~previous_try() throw() {}
+
+  int32_t left;
+  int32_t right;
+  int32_t t;
+
+  _previous_try__isset __isset;
+
+  void __set_left(const int32_t val) {
+    left = val;
+  }
+
+  void __set_right(const int32_t val) {
+    right = val;
+  }
+
+  void __set_t(const int32_t val) {
+    t = val;
+  }
+
+  bool operator == (const previous_try & rhs) const
+  {
+    if (!(left == rhs.left))
+      return false;
+    if (!(right == rhs.right))
+      return false;
+    if (!(t == rhs.t))
+      return false;
+    return true;
+  }
+  bool operator != (const previous_try &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const previous_try & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
 } // namespace
 
 #endif

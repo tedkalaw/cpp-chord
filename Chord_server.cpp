@@ -35,6 +35,7 @@ using boost::shared_ptr;
 using namespace  ::mp2;
 int _x;
 bool debugging = false;;
+int counter=0;
 
 
 class ChordHandler : virtual public ChordIf {
@@ -47,7 +48,7 @@ class ChordHandler : virtual public ChordIf {
     this->id = id;
     this->port = port;
     this->pred.id = id;
-    this->pred.port = -1;
+    this->pred.port = port;
     this->stabilize_interval = s_interval;
     this->fix_interval = f_interval;
     //first element in table = successor
@@ -65,9 +66,10 @@ class ChordHandler : virtual public ChordIf {
       transport->open();
       successor returned;
       this->introducer->join_network(returned, this->id);
-      //printf("Introducer told me that my successor is %d on port %d\n", returned.id,
-          //returned.port);
+      printf("Introducer told me that my successor is %d on port %d\n", returned.id,
+          returned.port);
       transport->close();
+      printf("Returned: %d::%d\n", returned.id, returned.port);
       this->set_succ(returned.id, returned.port);
     }
     else{
@@ -91,6 +93,9 @@ class ChordHandler : virtual public ChordIf {
     if(this->finger_table->at(SUCCESSOR) == NULL){
       data_store[key] = data;
       _return.node_id = this->id;
+    }
+    else{
+    
     }
     _return.key = key;
   }
@@ -119,6 +124,7 @@ class ChordHandler : virtual public ChordIf {
       }
     }
   }
+
 
   void get_file() {
     // Your implementation goes here
@@ -151,22 +157,47 @@ class ChordHandler : virtual public ChordIf {
   //we can assume that add_node won't be called with an id that has alreayd 
   //been used
   void join_network(successor& _return, const int32_t pid){
+    printf("Joining das network\n");
     this->find_successor(_return, pid);
   }
 
+  void get_successor(successor& _return){
+    _return.id = this->finger_table->at(0)->id;
+    _return.port = this->finger_table->at(0)->port;
+  }
   void find_successor(successor& _return, const int32_t pid) {
     neighbor returned;
+    printf("Before find pred\n");
     this->find_predecessor(returned, pid);
     _return.id = returned.succ_id;
     _return.port = returned.succ_port;
+    printf("End of find successor: %d::%d\n", _return.id, _return.port);
   }
 
   //this function isn't necessary right now, but we'll keep it
   //so that the code is consistent with the white paper
   void find_predecessor(neighbor& _return, const int32_t pid) {
-    pthread_mutex_lock(&transport_mutex);
-    this->closest_preceding_finger(_return, pid);
-    pthread_mutex_unlock(&transport_mutex);
+    Node* cur;
+    _return.id = this->id;
+    _return.port = this->port;
+    printf("Return value: %d::%d\n", _return.id, _return.port);
+    if(this->finger_table->at(0) != NULL){
+    _return.succ_id = this->finger_table->at(0)->id;
+    _return.succ_port = this->finger_table->at(0)->port;
+    printf("Return succ value: %d::%d\n", _return.succ_id, _return.succ_port);
+    }
+    else{
+      _return.succ_id = this->id;
+      _return.succ_port = this->port;
+    printf("Return succ value: %d::%d\n", _return.succ_id, _return.succ_port);
+    }
+    while(!in_range(_return.id, _return.succ_id, pid)){
+      printf("looping\n");
+      cur = new Node(_return.id, _return.port);
+      cur->open_connection();
+      cur->connection->closest_preceding_finger(_return, pid);
+      cur->close_connection();
+    }
   }
 
   bool in_range(int left, int right, int t){
@@ -182,6 +213,7 @@ class ChordHandler : virtual public ChordIf {
     else{
       returned = (t >= left) && (t <= right);
     }
+    if(left == right) returned = true;
 
     _x++;
     return returned;
@@ -194,14 +226,31 @@ class ChordHandler : virtual public ChordIf {
       entry = this->finger_table->at(i);
       if(entry == NULL && pid == this->id) break;
       if(entry != NULL && (this->in_range(this->id, pid, entry->id))){
+        printf("inside of the loop\n");
         //pass to next node
+        /*
+        pthread_mutex_lock(&transport_mutex);
+        printf("In mutex with %d;%d;%d\n", this->id, pid, entry->id);
         entry->open_connection();
         entry->connection->closest_preceding_finger(_return, pid);
         entry->close_connection();
+        pthread_mutex_unlock(&transport_mutex);
+        */
+
+        printf("Finding prec finger\n");
+        _return.id = entry->id;
+        _return.port = entry->port;
+        successor succ;
+        entry->open_connection();
+        entry->connection->get_successor(succ);
+        entry->close_connection();
+        _return.succ_id = succ.id;
+        _return.succ_port = succ.port;
         return;
       }
       i--;
     }
+    printf("outside of the loop\n");
 
     //current node is closest
     _return.id = this->get_id();
@@ -263,17 +312,21 @@ class ChordHandler : virtual public ChordIf {
 
   //manage connection here?
   void set_succ(int id, int port){
-    pthread_mutex_lock(&m_mutex);
+    printf("set succ %d::%d\n", id, port);
     Node* curr = this->finger_table->at(0);
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
+      pthread_mutex_lock(&m_mutex);
       (*(this->finger_table))[0] = new Node(id, port);
+      pthread_mutex_unlock(&m_mutex);
     }
     else{
       //only do this stuff if it's a new node!
       if(curr->id != id){
         delete curr;
+        pthread_mutex_lock(&m_mutex);
         (*(this->finger_table))[0] = new Node(id, port);
+        pthread_mutex_unlock(&m_mutex);
 
         curr = this->finger_table->at(0);
         pthread_mutex_lock(&transport_mutex);
@@ -281,7 +334,6 @@ class ChordHandler : virtual public ChordIf {
         pthread_mutex_lock(&transport_mutex);
       }
     }
-    pthread_mutex_unlock(&m_mutex);
   }
 
 
@@ -341,8 +393,10 @@ class ChordHandler : virtual public ChordIf {
     predecessor next;
     while(true){
       sleep(this->stabilize_interval);
-      successor = atomic_get_node(SUCCESSOR);
+      printf("Before getting successor\n");
+      successor = this->finger_table->at(SUCCESSOR);
       if(successor != NULL){
+        printf("Iteration %d\n", counter);
         printf("My successor: %d\n", successor->id);
         printf("My predecessor: %d\n", pred.id);
         pthread_mutex_lock(&transport_mutex);
@@ -387,11 +441,11 @@ class ChordHandler : virtual public ChordIf {
     while(true){
       sleep(this->fix_interval);
       pick = rand() % (m-1) + 1;
-      //printf("Fixing fingers by looking at %dth start\n", pick);
+      printf("Fixing fingers by looking at %dth start\n", pick);
       curr_start = this->start_values->at(pick);
       //printf("Start value at %d = %d\n", pick, curr_start);
-      find_successor(next, curr_start);
-      //printf("New finger is id: %d, port: %d at %d\n", next.id, next.port, pick);
+        find_successor(next, curr_start);
+        //printf("New finger is id: %d, port: %d at %d\n", next.id, next.port, pick);
       set_finger(next.id, next.port, pick);
       print_fingers();
     }

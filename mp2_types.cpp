@@ -464,4 +464,80 @@ uint32_t UserProfile::write(::apache::thrift::protocol::TProtocol* oprot) const 
   return xfer;
 }
 
+const char* previous_try::ascii_fingerprint = "6435B39C87AB0E30F30BEDEFD7328C0D";
+const uint8_t previous_try::binary_fingerprint[16] = {0x64,0x35,0xB3,0x9C,0x87,0xAB,0x0E,0x30,0xF3,0x0B,0xED,0xEF,0xD7,0x32,0x8C,0x0D};
+
+uint32_t previous_try::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->left);
+          this->__isset.left = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->right);
+          this->__isset.right = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 3:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->t);
+          this->__isset.t = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t previous_try::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  xfer += oprot->writeStructBegin("previous_try");
+  xfer += oprot->writeFieldBegin("left", ::apache::thrift::protocol::T_I32, 1);
+  xfer += oprot->writeI32(this->left);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("right", ::apache::thrift::protocol::T_I32, 2);
+  xfer += oprot->writeI32(this->right);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldBegin("t", ::apache::thrift::protocol::T_I32, 3);
+  xfer += oprot->writeI32(this->t);
+  xfer += oprot->writeFieldEnd();
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
 } // namespace

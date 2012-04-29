@@ -45,6 +45,12 @@ struct UserProfile {
   3: string blurb
 }
 
+struct previous_try{
+  1: i32 left,
+  2: i32 right,
+  3: i32 t
+}
+
 
 
 //service in which a node talks to a node
@@ -58,6 +64,7 @@ service Chord
 	key_and_node del_file(1: string filename),
 	void get_file(),
 	void get_table(),
+        successor get_successor(),
         successor join_network(1: i32 pid),
         successor initiate_add_file(1: string filename, 2: string data),
         predecessor current_pred(),

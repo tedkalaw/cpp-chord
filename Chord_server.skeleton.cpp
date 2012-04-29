@@ -47,6 +47,11 @@ class ChordHandler : virtual public ChordIf {
     printf("get_table\n");
   }
 
+  void get_successor(successor& _return) {
+    // Your implementation goes here
+    printf("get_successor\n");
+  }
+
   void join_network(successor& _return, const int32_t pid) {
     // Your implementation goes here
     printf("join_network\n");
