@@ -8,6 +8,7 @@
 #include <string>
 #include <protocol/TBinaryProtocol.h>
 #include <server/TSimpleServer.h>
+#include <server/TThreadedServer.h>
 #include <transport/TServerSocket.h>
 #include <transport/TSocket.h>
 #include <transport/TBufferTransports.h>
@@ -34,17 +35,22 @@ using namespace  ::mp2;
 
 class ChordHandler : virtual public ChordIf {
  public:
-  ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1) {
+  ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1,
+      int s_interval = 3, int f_interval = 5) {
     this->m = m;
     this->introducer_port = introducer_port;
     this->id = id;
     this->port = port;
-    this->predecessor = -1;
+    this->pred.id = id;
+    this->pred.port = -1;
+    this->stabilize_interval = s_interval;
+    this->fix_interval = f_interval;
     //first element in table = successor
     this->finger_table = new vector<Node*>(m, NULL);
     int pow = 1;
     pow <<= m;
     this->pow = pow;
+    this->gen_start_values();
 
     if(id != 0){
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
@@ -63,12 +69,12 @@ class ChordHandler : virtual public ChordIf {
       this->introducer = NULL;
     }
 
-
+    this->start();
   }
 
   void add_node() {
     // Your implementation goes here
-    printf("%d\n", this->m);
+    printf("RPC\n");
   }
 
   void add_file() {
@@ -91,11 +97,22 @@ class ChordHandler : virtual public ChordIf {
     printf("get_table\n");
   }
 
-  void notify(const int32_t pid) {
-    printf("Process %d claims to be my predecessor.\n", pid);
-    if(this->predecessor == NO_PREDECESSOR || in_range(predecessor, this->id, pid)){
-      predecessor = pid;
-      printf("Changing my predecessor to %d\n", predecessor);
+  void current_pred(predecessor& _return){
+    printf("Telling someone that my pred's id is %d\n", pred.id);
+    _return.id = this->pred.id;
+    _return.port = this->pred.port;
+  }
+
+  void notify(const int32_t pid, const int32_t new_port) {
+    ////printf("Process %d claims to be my predecessor.\n", pid);
+    if(pid != this->id && (pred.id == NO_PREDECESSOR || in_range(pred.id, this->id, pid))){
+    printf("I am %d and %d is trying to be my predecessor\n", this->id, pid);
+      if(pred.id != pid){
+        pred.id = pid;
+    printf("Pred.port is changing from %d to %d\n", pred.port, new_port);
+        pred.port = new_port;
+        printf("Changing my predecessor to %d\n", pred.id);
+      }
     }
     else{
       printf("No change to predecessor\n");
@@ -111,7 +128,6 @@ class ChordHandler : virtual public ChordIf {
   }
 
   void find_successor(successor& _return, const int32_t pid) {
-    // Your implementation goes here
     printf("%d is trying to find %d's successor\n", this->id, pid);
     neighbor returned;
     this->find_predecessor(returned, pid);
@@ -122,17 +138,17 @@ class ChordHandler : virtual public ChordIf {
   //this function isn't necessary right now, but we'll keep it
   //so that the code is consistent with the white paper
   void find_predecessor(neighbor& _return, const int32_t pid) {
-    // Your implementation goes here
-    printf("%d is trying to find %d's predecessor\n", this->id, pid);
+    //printf("%d is trying to find %d's predecessor\n", this->id, pid);
     this->closest_preceding_finger(_return, pid);
   }
 
   bool in_range(int start, int end, int test){
-    return ((test > start) && (test < this->pow)) || ((test < end) && (test > 0));
+    bool returned = ((test > start) && (test <= this->pow)) || ((test < end) && (test >= 0));
+    printf("Checking if %d is on (%d, %d)\n", test, start, end);
   }
 
   void closest_preceding_finger(neighbor& _return, const int32_t pid){
-    printf("%d is trying to find %d's closest preceding finger\n", this->id, pid);
+    //printf("%d is trying to find %d's closest preceding finger\n", this->id, pid);
     int i = this->m;
     Node* entry;
     while(--i){
@@ -180,6 +196,19 @@ class ChordHandler : virtual public ChordIf {
     return 0;
   }
   
+  void set_finger(int id, int port, int i){
+    Node* curr = this->finger_table->at(i);
+    //no entry for this yet
+    if(curr == NULL || curr->id != id){
+      if(curr != NULL)
+        delete curr;
+      if(id != this->id)
+        (*(this->finger_table))[i] = new Node(id, port);
+      else
+        (*(this->finger_table))[i] = NULL;
+    }
+  }
+
   //manage connection here?
   void set_succ(int id, int port){
     Node* curr = this->finger_table->at(0);
@@ -193,50 +222,119 @@ class ChordHandler : virtual public ChordIf {
       if(curr->id != id){
         delete curr;
         (*(this->finger_table))[0] = new Node(id, port);
+
+        printf("Telling %d that it is my successor\n", id);
+        curr = this->finger_table->at(0);
+        curr->notify(this->id, this->port);
       }
     }
-
-    printf("Telling %d that it is my successor\n", id);
-    curr = this->finger_table->at(0);
-    curr->notify(this->id);
   }
 
-  int get_pred(){
-    return this->predecessor;
-  }
 
-  void* test_func(void* input){
-
-  }
-
-  void go(){
-    pthread_t test;
-
-  }
-
-  void set_pred(int port){
-    this->predecessor = port;
-  }
-
-  void stabilize(){
-    sleep(1);
-    printf("Boom\n");
-
+  void start(){
+    pthread_create(&stabilize_thread, NULL, start_stabilize, this);
+    //pthread_create(&fix_thread, NULL, start_fix, this);
   }
 
   ChordClient* introducer;
   vector<Node*>* finger_table;
   int pow;
+  predecessor pred;
 
   //verify current node's successor
+  //
+  void gen_start_values(){
+    start_values = new vector<int>(m+1, this->id);
+    for(int i=0; i<=m; i++){
+      (*(start_values))[i] = (this->id + (1 << (i-1))) % pow;
+    }
+  }
 
  private:
   int m;
   int id;
   int introducer_port;
   int port;
-  int predecessor;
-  pthread_t mthread;
+  int stabilize_interval;
+  int fix_interval;
+  pthread_t stabilize_thread;
+  pthread_t fix_thread;
+  vector<int>* start_values;
+
+  void stabilize(){
+    Node* successor;
+    predecessor next;
+    while(true){
+      sleep(this->stabilize_interval);
+      printf("My predecessor: %d\n", this->pred.id);
+      successor = this->finger_table->at(SUCCESSOR);
+      if(successor != NULL){
+        printf("Successor's id: %d\n", successor->id);
+        successor->current_pred(next);
+        printf("Just called current_pred on %d\n", successor->id);
+        //if our successor has no predecessor
+        printf("Successor's predecessor: %d\n", next.id);
+        if(next.id != -1 && next.id != this->id && in_range(this->id, successor->id, next.id)){
+          this->set_succ(next.id, next.port);
+          successor = this->finger_table->at(SUCCESSOR);
+        }
+        printf("about to notify my successor from stab; %d::%d\n", successor->id, this->id);
+        successor->notify(this->id, this->port);
+      }
+      else{
+        printf("Successor is empty\n");
+        if(pred.id != this->id){
+          printf("Pred: %d::%d\n", pred.id, pred.port);
+          this->set_succ(pred.id, pred.port);
+        }
+      }
+    }
+  }
+
+  void print_fingers(){
+    printf("**** Fingers ****\n");
+    Node* curr;
+    for(int i=0; i<m; i++){
+      curr = this->finger_table->at(i);
+      if(curr != NULL)
+        printf("%d -> %d\n", i, curr->id);
+      else
+        printf("%d -> SELF\n", i);
+    }
+    printf("*****************\n");
+
+  }
+
+  void fix_fingers(){
+    successor next;
+    srand(time(NULL));
+    int pick, curr_start;
+    while(true){
+      sleep(this->fix_interval);
+      pick = rand() % (m-1) + 1;
+      printf("Fixing fingers by looking at %dth start\n", pick);
+      curr_start = this->start_values->at(pick);
+      find_successor(next, curr_start);
+      if(next.id != this->id)
+        set_finger(next.id, next.port, pick);
+      else
+        printf("This finger points at me\n");
+
+      print_fingers();
+    }
+  }
+
+  static void* start_stabilize(void* arg) {
+    ChordHandler* h = reinterpret_cast<ChordHandler*>(arg);
+    h->stabilize();
+    pthread_exit(0);
+  }
+
+  static void* start_fix(void* arg){
+    ChordHandler* h = reinterpret_cast<ChordHandler*>(arg);
+    h->fix_fingers();
+    pthread_exit(0);
+  }
 
 };
 
@@ -281,7 +379,7 @@ int main(int argc, char **argv) {
   shared_ptr<TTransportFactory> transportFactory(new TBufferedTransportFactory());
   shared_ptr<TProtocolFactory> protocolFactory(new TBinaryProtocolFactory());
 
-  TSimpleServer server(processor, serverTransport, transportFactory, protocolFactory);
+  TThreadedServer server(processor, serverTransport, transportFactory, protocolFactory);
   printf("Starting session on port %d\n", nodeh->get_port());
 
   //spawn thread to take care of stabilization stuff

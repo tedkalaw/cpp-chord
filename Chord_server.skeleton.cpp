@@ -52,7 +52,12 @@ class ChordHandler : virtual public ChordIf {
     printf("join_network\n");
   }
 
-  void notify(const int32_t pid) {
+  void current_pred(predecessor& _return) {
+    // Your implementation goes here
+    printf("current_pred\n");
+  }
+
+  void notify(const int32_t pid, const int32_t new_port) {
     // Your implementation goes here
     printf("notify\n");
   }

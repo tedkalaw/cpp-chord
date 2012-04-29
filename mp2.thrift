@@ -27,6 +27,12 @@ struct successor
   2: i32 port
 }
 
+struct predecessor
+{
+  1: i32 id,
+  2: i32 port
+}
+
 struct UserProfile {
   1: i32 uid,
   2: string name,
@@ -46,7 +52,8 @@ service Chord
 	void get_file(),
 	void get_table(),
         successor join_network(1: i32 pid),
-        void notify(1: i32 pid),
+        predecessor current_pred(),
+        void notify(1: i32 pid, 2: i32 new_port),
         successor find_successor(1: i32 pid),
         neighbor find_predecessor(1: i32 pid),
         neighbor closest_preceding_finger(1: i32 pid),

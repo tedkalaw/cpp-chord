@@ -195,6 +195,55 @@ class successor {
 
 };
 
+typedef struct _predecessor__isset {
+  _predecessor__isset() : id(false), port(false) {}
+  bool id;
+  bool port;
+} _predecessor__isset;
+
+class predecessor {
+ public:
+
+  static const char* ascii_fingerprint; // = "989D1F1AE8D148D5E2119FFEC4BBBEE3";
+  static const uint8_t binary_fingerprint[16]; // = {0x98,0x9D,0x1F,0x1A,0xE8,0xD1,0x48,0xD5,0xE2,0x11,0x9F,0xFE,0xC4,0xBB,0xBE,0xE3};
+
+  predecessor() : id(0), port(0) {
+  }
+
+  virtual ~predecessor() throw() {}
+
+  int32_t id;
+  int32_t port;
+
+  _predecessor__isset __isset;
+
+  void __set_id(const int32_t val) {
+    id = val;
+  }
+
+  void __set_port(const int32_t val) {
+    port = val;
+  }
+
+  bool operator == (const predecessor & rhs) const
+  {
+    if (!(id == rhs.id))
+      return false;
+    if (!(port == rhs.port))
+      return false;
+    return true;
+  }
+  bool operator != (const predecessor &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const predecessor & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
 typedef struct _UserProfile__isset {
   _UserProfile__isset() : uid(false), name(false), blurb(false) {}
   bool uid;

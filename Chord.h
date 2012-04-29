@@ -21,7 +21,8 @@ class ChordIf {
   virtual void get_file() = 0;
   virtual void get_table() = 0;
   virtual void join_network(successor& _return, const int32_t pid) = 0;
-  virtual void notify(const int32_t pid) = 0;
+  virtual void current_pred(predecessor& _return) = 0;
+  virtual void notify(const int32_t pid, const int32_t new_port) = 0;
   virtual void find_successor(successor& _return, const int32_t pid) = 0;
   virtual void find_predecessor(neighbor& _return, const int32_t pid) = 0;
   virtual void closest_preceding_finger(neighbor& _return, const int32_t pid) = 0;
@@ -73,7 +74,10 @@ class ChordNull : virtual public ChordIf {
   void join_network(successor& /* _return */, const int32_t /* pid */) {
     return;
   }
-  void notify(const int32_t /* pid */) {
+  void current_pred(predecessor& /* _return */) {
+    return;
+  }
+  void notify(const int32_t /* pid */, const int32_t /* new_port */) {
     return;
   }
   void find_successor(successor& /* _return */, const int32_t /* pid */) {
@@ -568,20 +572,116 @@ class Chord_join_network_presult {
 
 };
 
+
+class Chord_current_pred_args {
+ public:
+
+  Chord_current_pred_args() {
+  }
+
+  virtual ~Chord_current_pred_args() throw() {}
+
+
+  bool operator == (const Chord_current_pred_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const Chord_current_pred_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_current_pred_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class Chord_current_pred_pargs {
+ public:
+
+
+  virtual ~Chord_current_pred_pargs() throw() {}
+
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_current_pred_result__isset {
+  _Chord_current_pred_result__isset() : success(false) {}
+  bool success;
+} _Chord_current_pred_result__isset;
+
+class Chord_current_pred_result {
+ public:
+
+  Chord_current_pred_result() {
+  }
+
+  virtual ~Chord_current_pred_result() throw() {}
+
+  predecessor success;
+
+  _Chord_current_pred_result__isset __isset;
+
+  void __set_success(const predecessor& val) {
+    success = val;
+  }
+
+  bool operator == (const Chord_current_pred_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const Chord_current_pred_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const Chord_current_pred_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _Chord_current_pred_presult__isset {
+  _Chord_current_pred_presult__isset() : success(false) {}
+  bool success;
+} _Chord_current_pred_presult__isset;
+
+class Chord_current_pred_presult {
+ public:
+
+
+  virtual ~Chord_current_pred_presult() throw() {}
+
+  predecessor* success;
+
+  _Chord_current_pred_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 typedef struct _Chord_notify_args__isset {
-  _Chord_notify_args__isset() : pid(false) {}
+  _Chord_notify_args__isset() : pid(false), new_port(false) {}
   bool pid;
+  bool new_port;
 } _Chord_notify_args__isset;
 
 class Chord_notify_args {
  public:
 
-  Chord_notify_args() : pid(0) {
+  Chord_notify_args() : pid(0), new_port(0) {
   }
 
   virtual ~Chord_notify_args() throw() {}
 
   int32_t pid;
+  int32_t new_port;
 
   _Chord_notify_args__isset __isset;
 
@@ -589,9 +689,15 @@ class Chord_notify_args {
     pid = val;
   }
 
+  void __set_new_port(const int32_t val) {
+    new_port = val;
+  }
+
   bool operator == (const Chord_notify_args & rhs) const
   {
     if (!(pid == rhs.pid))
+      return false;
+    if (!(new_port == rhs.new_port))
       return false;
     return true;
   }
@@ -614,6 +720,7 @@ class Chord_notify_pargs {
   virtual ~Chord_notify_pargs() throw() {}
 
   const int32_t* pid;
+  const int32_t* new_port;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -1112,8 +1219,11 @@ class ChordClient : virtual public ChordIf {
   void join_network(successor& _return, const int32_t pid);
   void send_join_network(const int32_t pid);
   void recv_join_network(successor& _return);
-  void notify(const int32_t pid);
-  void send_notify(const int32_t pid);
+  void current_pred(predecessor& _return);
+  void send_current_pred();
+  void recv_current_pred(predecessor& _return);
+  void notify(const int32_t pid, const int32_t new_port);
+  void send_notify(const int32_t pid, const int32_t new_port);
   void recv_notify();
   void find_successor(successor& _return, const int32_t pid);
   void send_find_successor(const int32_t pid);
@@ -1146,6 +1256,7 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
   void process_get_file(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_join_network(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_current_pred(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_notify(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_find_successor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_find_predecessor(int32_t seqid, apache::thrift::protocol::TProtocol* iprot, apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -1160,6 +1271,7 @@ class ChordProcessor : public ::apache::thrift::TProcessor {
     processMap_["get_file"] = &ChordProcessor::process_get_file;
     processMap_["get_table"] = &ChordProcessor::process_get_table;
     processMap_["join_network"] = &ChordProcessor::process_join_network;
+    processMap_["current_pred"] = &ChordProcessor::process_current_pred;
     processMap_["notify"] = &ChordProcessor::process_notify;
     processMap_["find_successor"] = &ChordProcessor::process_find_successor;
     processMap_["find_predecessor"] = &ChordProcessor::process_find_predecessor;
@@ -1241,10 +1353,22 @@ class ChordMultiface : virtual public ChordIf {
     }
   }
 
-  void notify(const int32_t pid) {
+  void current_pred(predecessor& _return) {
     size_t sz = ifaces_.size();
     for (size_t i = 0; i < sz; ++i) {
-      ifaces_[i]->notify(pid);
+      if (i == sz - 1) {
+        ifaces_[i]->current_pred(_return);
+        return;
+      } else {
+        ifaces_[i]->current_pred(_return);
+      }
+    }
+  }
+
+  void notify(const int32_t pid, const int32_t new_port) {
+    size_t sz = ifaces_.size();
+    for (size_t i = 0; i < sz; ++i) {
+      ifaces_[i]->notify(pid, new_port);
     }
   }
 
