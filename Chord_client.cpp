@@ -18,9 +18,16 @@ using namespace mp2;
 
 int introducer_port;
 
+int starting_port = -1;
+int attach_node = -1;
+int m = -1;
+int stabilize_interval = -1;
+int fix_interval = -1;
+string log_conf = "";
+
 bool valid_flags(int argc, char **argv){
   if(argc < 2){
-    std::cerr << "Needs at least -m flag" << endl;
+    std::cerr << "Needs at least --m flag" << endl;
     return false;
   }
   else{
@@ -33,7 +40,7 @@ bool valid_flags(int argc, char **argv){
       }
     }
     if(valid) return true;
-    std::cerr << "Needs at -m flag" << endl;
+    std::cerr << "Needs at --m flag" << endl;
     return false;
   }
 }
@@ -53,6 +60,48 @@ void create_node(){
 
   }
 
+}
+
+void set_args(int argc, char **argv, char**& arguments){
+  string arg;
+  bool valid = false;
+  arguments = new char* [argc - 1];
+  for(int i=1; i<argc; i+=2){
+    arg = argv[i];
+    if(arg == "--m"){
+      m = atoi(argv[i+1]);
+      valid = true;
+      arguments[i-1] = new char [4];
+      strncpy(arguments[i-1], "--m", 4);
+    }
+    else if(arg == "--startingPort"){
+      starting_port = atoi(argv[i+1]);
+      arguments[i-1] = new char[15];
+      strncpy(arguments[i-1], "--startingPort", 15);
+    }
+    else if (arg == "--attachToNode"){
+      attach_node = atoi(argv[i+1]);
+      arguments[i-1] = new char[15];
+      strncpy(arguments[i-1], "--attachToNode", 15);
+    }
+    else if(arg == "--stabilizeInterval"){
+      stabilize_interval = atoi(argv[i+1]);
+      arguments[i-1] = new char[20];
+      strncpy(arguments[i-1], "--stabilizeInterval", 20);
+    }
+    else if(arg == "--fixInterval"){
+      fix_interval = atoi(argv[i+1]);
+      arguments[i-1] = new char[14];
+      strncpy(arguments[i-1], "--fixInterval", 14);
+    }
+    else if(arg == "--logConf"){
+      log_conf = atoi(argv[i+1]);
+      arguments[i-1] = new char[10];
+      strncpy(arguments[i-1], "--logConf", 10);
+    }
+    arguments[i] = new char [strlen(argv[i+1])];
+    strncpy(arguments[i-1], argv[i+1]);
+  }
 }
 
 void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTransport>& transport,
@@ -79,6 +128,10 @@ int main(int argc, char **argv) {
   //we can change this later
   /* these next three lines are standard */
 
+  char** args;
+  set_args(argc, argv, args);
+
+  return 0;
   bool valid = false;
   boost::shared_ptr<TSocket> socket;
   boost::shared_ptr<TTransport> transport;
@@ -99,7 +152,6 @@ int main(int argc, char **argv) {
   //want to add the original introducer node
 
   printf("Welcome to node listener\n");
-  //user interface type shit
   while(1){
 
 	//40 should be enough, whatever we can change it 
