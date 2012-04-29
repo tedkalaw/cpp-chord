@@ -36,7 +36,7 @@ using namespace  ::mp2;
 class ChordHandler : virtual public ChordIf {
  public:
   ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1,
-      int s_interval = 2, int f_interval = 5) {
+      int s_interval = 2, int f_interval = 1) {
     this->m = m;
     this->introducer_port = introducer_port;
     this->id = id;
@@ -154,12 +154,18 @@ class ChordHandler : virtual public ChordIf {
   bool in_range(int left, int right, int t){
     bool returned;
     if(left > right){
+      if(t > left){
+        return (t == left) || (t <= pow);
+      }
+      else if (t < right){
+        return (t==right) || (t>= 0);
+      }
       returned = (t > right) && (t < left);
     }
     else{
-      returned = (t > left) && (t < right);
+      returned = (t >= left) && (t <= right);
     }
-    //printf("Checking if %d is on (%d, %d)\n", test, start, end);
+    printf("Checking if %d is on (%d, %d): %d\n", t, left, right, returned);
     return returned;
   }
 
@@ -171,17 +177,17 @@ class ChordHandler : virtual public ChordIf {
     Node* entry;
     while(i>=0){
       entry = this->finger_table->at(i);
+      if(entry == NULL && pid == this->id) break;
       if(entry != NULL && (this->in_range(this->id, pid, entry->id))){
         //pass to next node
-        printf("going into loop\n");
         entry->open_connection();
         entry->connection->closest_preceding_finger(_return, pid);
         entry->close_connection();
-        printf("Trying to return id: %d, port: %d\n", _return.id, _return.port);
         return;
       }
       i--;
     }
+
     //current node is closest
     _return.id = this->get_id();
     _return.port = this->get_port();
@@ -218,18 +224,25 @@ class ChordHandler : virtual public ChordIf {
     return 0;
   }
   
-  void set_finger(int id, int port, int i){
+  void set_finger(int new_id, int new_port, int i){
     Node* curr = this->finger_table->at(i);
-    //no entry for this yet
-    if(curr == NULL || curr->id != id){
-      if(curr != NULL)
-        delete curr;
-      if(id != this->id)
-        (*(this->finger_table))[i] = new Node(id, port);
+    if(curr != NULL){
+      printf("Old value: %d\n", curr->id);
+      if(curr->id == new_id)
+        return;
       else
-        (*(this->finger_table))[i] = NULL;
+        delete curr;
+    }
+    if(new_id == this->id){
+      printf("My id\n");
+      (*(this->finger_table))[i] = NULL;
+    }
+    else{
+      printf("Changing");
+      (*(this->finger_table))[i] = new Node(new_id, new_port);
     }
   }
+
 
   //manage connection here?
   void set_succ(int id, int port){
@@ -255,7 +268,7 @@ class ChordHandler : virtual public ChordIf {
 
   void start(){
     pthread_create(&stabilize_thread, NULL, start_stabilize, this);
-    //pthread_create(&fix_thread, NULL, start_fix, this);
+    pthread_create(&fix_thread, NULL, start_fix, this);
   }
 
   ChordClient* introducer;
@@ -268,7 +281,7 @@ class ChordHandler : virtual public ChordIf {
   void gen_start_values(){
     start_values = new vector<int>(m+1, this->id);
     for(int i=0; i<=m; i++){
-      (*(start_values))[i] = (this->id + (1 << (i-1))) % pow;
+      (*(start_values))[i] = (this->id + (1 << (i))) % pow;
     }
   }
 
@@ -336,12 +349,10 @@ class ChordHandler : virtual public ChordIf {
       pick = rand() % (m-1) + 1;
       printf("Fixing fingers by looking at %dth start\n", pick);
       curr_start = this->start_values->at(pick);
+      printf("Start value at %d = %d\n", pick, curr_start);
       find_successor(next, curr_start);
-      if(next.id != this->id)
-        set_finger(next.id, next.port, pick);
-      else
-        printf("This finger points at me\n");
-
+      printf("New finger is id: %d, port: %d at %d\n", next.id, next.port, pick);
+      set_finger(next.id, next.port, pick);
       print_fingers();
     }
   }
