@@ -97,14 +97,29 @@ class ChordHandler : virtual public ChordIf {
     printf("closest_preceding_finger\n");
   }
 
-  void get_key_table(std::string& _return) {
+  void gen_key_table(std::string& _return) {
+    // Your implementation goes here
+    printf("gen_key_table\n");
+  }
+
+  void gen_finger_table(std::string& _return) {
+    // Your implementation goes here
+    printf("gen_finger_table\n");
+  }
+
+  void get_key_table(std::string& _return, const int32_t pid) {
     // Your implementation goes here
     printf("get_key_table\n");
   }
 
-  void get_finger_table(std::string& _return) {
+  void get_finger_table(std::string& _return, const int32_t pid) {
     // Your implementation goes here
     printf("get_finger_table\n");
+  }
+
+  void get_tables(std::string& _return, const int32_t pid) {
+    // Your implementation goes here
+    printf("get_tables\n");
   }
 
 };

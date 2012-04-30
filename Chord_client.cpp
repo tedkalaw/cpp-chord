@@ -34,10 +34,12 @@ string stabilize_interval = "";
 string fix_interval = "";
 string log_conf = "";
 int num_arguments = 0;
-char* m_arg;
 char** args;
 int introductor_port = 0;
 
+/*
+ * Initializes a connection given three references to the required files.
+ */
 void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTransport>& transport,
     boost::shared_ptr<TProtocol>& protocol, int port){
 
@@ -48,31 +50,6 @@ void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTranspo
 
 void attach_to_node(int port){
   init_sockets(_socket, _transport, _protocol, port);
-}
-
-void place_args(int intro_port, int id, int port){
-  string arg;
-  int len;
-  arg = boost::lexical_cast<string>(id);
-  len = arg.length() + 1;
-  args[6] = new char[len];
-  strncpy(args[6], arg.c_str(), len);
-
-  arg = boost::lexical_cast<string>(intro_port);
-  len = arg.length() + 1;
-  args[2] = new char[len];
-  strncpy(args[2], arg.c_str(), len);
-
-  arg = boost::lexical_cast<string>(port);
-  len = arg.length() + 1;
-  args[8] = new char[len];
-  strncpy(args[8], arg.c_str(), len);
-}
-
-void print_args(){
-  for(int i=0; i<(2 * num_arguments) - 1; i++){
-    printf("%s\n", args[i]);
-  }
 }
 
 void insert_args(int id, int port, int intro_port){
@@ -105,7 +82,7 @@ void create_introducer(){
               execv("./node", args);
               break;
 
-      default: sleep(1);
+      default: usleep(10000);
     }
 
     if(child != 0){
@@ -130,31 +107,29 @@ void create_node(int new_id){
   pid_t child;
   new_port = rand() % 8000 + 1999;
   while(!done){
+    usleep(100000);
     switch(child = fork()){
       case 0: insert_args(new_id, new_port, introductor_port);
               execv("./node", args);
 
-      default: sleep(1);
+      default: break;
     }
 
     if(child != 0){
       init_sockets(_socket, _transport, _protocol, new_port);
       try{
-        _transport->open();
-        break;
+        done = true;
+        usleep(100000);
       }
       catch(apache::thrift::transport::TTransportException& e){
         new_port = rand() % 8000 + 1999;
-        continue;
       }
     }
   }
 
-  _transport->close();
-  printf("Successfully added node %d\n", new_id);
 }
 
-void test_args(){
+void initialize_args(){
   int num = 10 + 2 * num_arguments;
   int end = num - 1;
   args = new char* [num];
@@ -221,6 +196,10 @@ void test_args(){
 
 }
 
+/*
+ * Takes in information about a DEL action and returns the formatted string as specified.
+ *
+ */
 string get_DEL_FILE_result_as_string(const char* fname, const int32_t key, const int32_t nodeID, bool success){
   std::stringstream s;
   s << "fname =" << fname << "\n";
@@ -235,6 +214,11 @@ string get_DEL_FILE_result_as_string(const char* fname, const int32_t key, const
   return s.str();
 }
 
+/*
+ * Takes in information about a ADD action and returns the formatted
+ * string as specified.
+ *
+ */
 string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
     const int32_t nodeID){
   std::stringstream s;
@@ -244,6 +228,11 @@ string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
   return s.str();
 }
 
+/*
+ * Takes in information about a GET action and returns the formatted
+ * string as specified.
+ *
+ */
 string get_GET_FILE_result_as_string(const char *fname,
     const int32_t key,
     const bool found,
@@ -265,6 +254,10 @@ string get_GET_FILE_result_as_string(const char *fname,
   return s.str();
 }
 
+/*
+ * Builds the argument  array to give to the exec call.
+ * Uses the global "arg" to store all of the variables.
+ */
 void set_args(int argc, char **argv){
   string arg;
   bool valid = false;
@@ -305,18 +298,23 @@ void set_args(int argc, char **argv){
   }
 }
 
+/*
+ * Starts repl for user
+ */
 int main(int argc, char **argv) {
 
   srand(time(NULL));
 
   set_args(argc, argv);
-  test_args();
-  if(attached == -1){
+  initialize_args();
+  if(attach_node == ""){
     create_introducer();
   }
   else{
-    init_sockets(_socket, _transport, _protocol, attached);
+    int new_port = boost::lexical_cast<int>(attached);
+    init_sockets(_socket, _transport, _protocol, new_port);
     _transport -> open();
+    introductor_port = new_port;
   }
 
   bool valid = false;
@@ -330,7 +328,6 @@ int main(int argc, char **argv) {
 
 	//40 should be enough, whatever we can change it 
         string input;
-	fputs("Select an option...\n ", stdout);
 	printf("ADD_NODE <node ID(s)> \n");
 	printf("ADD_FILE <filename><data> \n");
 	printf("DEL_FILE <filename>\n");
@@ -344,7 +341,6 @@ int main(int argc, char **argv) {
         key_and_node text;
 
         if(strs[0] == "ADD_FILE"){
-          printf("in add file\n");
           client.add_file(text, strs[1], strs[2]);
           output = get_ADD_FILE_result_as_string(strs[1].c_str(), text.key, text.node_id);
           cout << output << endl;
@@ -355,23 +351,27 @@ int main(int argc, char **argv) {
               text.success);
           cout << output << endl;
         } else if(strs[0] == "ADD_NODE"){
-          create_node(boost::lexical_cast<int>(strs[1]));
+          for(int i=1; i<strs.size(); i++){
+            int x = boost::lexical_cast<int>(strs[i]);
+            create_node(boost::lexical_cast<int>(strs[i]));
+          }
         }
         else if(strs[0] == "GET_FILE"){
           client.get_file(text, strs[1]);
           output = get_GET_FILE_result_as_string(strs[1].c_str(), text.key, 
               text.success, text.node_id, text.data.c_str());
           cout << output << endl;
-
+        }
+        else if(strs[0] == "GET_TABLE"){
+          client.get_tables(output, boost::lexical_cast<int>(strs[1].c_str()));
+          cout << output << endl;
+        }else if (strs[0] == "x"){
+          _transport->close();
+          exit(0);
         }
 
-
-	//i go cray
-	printf("\n\n\n\n\n");
-
   }
-	
- 
+
   _transport->close();
 
   return 0;

@@ -75,8 +75,11 @@ service Chord
         successor find_successor(1: i32 pid),
         neighbor find_predecessor(1: i32 pid),
         neighbor closest_preceding_finger(1: i32 pid),
-        string get_key_table(),
-        string get_finger_table()
+        string gen_key_table(),
+        string gen_finger_table(),
+        string get_key_table(1: i32 pid),
+        string get_finger_table(1: i32 pid),
+        string get_tables(1:i32 pid)
 
         
 }

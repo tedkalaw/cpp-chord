@@ -34,16 +34,28 @@ using namespace ::apache::thrift::server;
 using boost::shared_ptr;
 
 using namespace  ::mp2;
-int _x;
-bool debugging = false;;
-int counter=0;
 
+bool _debug = false;
 
+void enter(int x, char* p){
+  if(_debug)
+    printf("%d entering %s\n", x, p);
+}
+
+void leave(int x, char* p){
+  if(_debug)
+    printf("%d leaving %s\n", x, p);
+}
+int seed;
+/*
+ *Constructor for the chord handler; resposnible for many of the functions of the server.
+ *If this process is NOT the introducer, then it will connect to the introducer and ask it
+ * for it's successor
+ */
 class ChordHandler : virtual public ChordIf {
  public:
   ChordHandler(int m = 5, int id = -1, int port = 9090, int introducer_port = -1,
       int s_interval = 2, int f_interval = 1) {
-    _x = 0;
     this->m = m;
     this->introducer_port = introducer_port;
     this->id = id;
@@ -59,6 +71,11 @@ class ChordHandler : virtual public ChordIf {
     this->power = power;
     this->gen_start_values();
 
+    printf("constructor called with id: %d, port: %d, introducer: %d\n", id, port, introducer_port);
+
+    /*
+     *Asking for successor
+     */
     if(id != 0){
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
       shared_ptr<TTransport> transport(new TBufferedTransport(socket));
@@ -74,11 +91,14 @@ class ChordHandler : virtual public ChordIf {
       this->introducer = NULL;
     }
 
-    pthread_mutex_init(&m_mutex, NULL);
     pthread_mutex_init(&transport_mutex, NULL);
     this->start();
   }
 
+  /*
+   *Grab file data from a given node
+   *Returns a populated key_and_node struct
+   */
   void snatch_file(key_and_node& _return, const int32_t key){
     map<int, pair<string, string> >::iterator it = data_table.find(key);
     _return.key = key;
@@ -92,23 +112,112 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  void get_key_table(string& _return){
+  /*
+   *Generates the key table for a given node, and stores this string
+   * _return
+   */
+  void gen_key_table(string& _return){
     stringstream s;
     map<int, pair<string, string> >::iterator it = data_table.begin();
     s << "keys table: \n";
+    for(; it != data_table.end(); ++it){
+      using std::setw;
+
+      s<<"entry: k= " << setw(4) << it->first
+        <<",  fname= " << setw(10) << (it->second).first
+        <<",  fdata= " << (it->second).second
+        << "\n";
+    }
+    _return = s.str();
   }
 
-  void get_finger_table(string& _return){
+  /*
+   * Generates the key table and finger table for a given pid. If the requested pid 
+   * is equal to our own, we simply check it ourselves. Otherwise, we calculate
+   * them and store them in _return.
+   */
+  void get_tables(string& _return, int32_t pid){
+    string finger;
+    string key;
+    if(pid == this->id){
+      gen_finger_table(finger);
+      gen_key_table(key);
+    }
+    else{
+      get_key_table(key, pid);
+      get_finger_table(finger, pid);
+    }
+    _return = finger + key;
+  }
 
+  /*
+   * Generates key table for a given pid. Same as above.
+   */
+  void get_key_table(string& _return, int32_t pid){
+    successor next;
+    find_successor(next, pid - 1);
+    Node* temp = new Node(next.id, next.port);
+    pthread_mutex_lock(&transport_mutex);
+    temp->open_connection();
+    temp->connection->gen_key_table(_return);
+    temp->close_connection();
+    pthread_mutex_unlock(&transport_mutex);
+    delete temp;
+  }
+
+  /*
+   *  Generates finger table for a given node and stores it 
+   *  in _return. Creates formatted string.
+   */
+  void gen_finger_table(string& _return){
+    stringstream s;
+    for(int i=1; i <= this->m; i++){
+      s << "entry: i= " << setw(2) << i << ", interval=["
+        << setw(4) << calc_start(i)
+        << ",  "
+        << setw(4) << calc_start(i+1)
+        << "),  node= "
+        << setw(4) ;
+        if(this->finger_table->at(i-1) != NULL)
+          s << this->finger_table->at(i-1)->id;
+        else
+          s << this->id;
+        s << "\n";
+
+    }
+    _return = s.str();
+  }
+
+  /*
+   * Grabs finger table for a given pid and stores it in _return. 
+   * Does not do the computation - is meant to be used as an RPC call.
+   */
+  void get_finger_table(string& _return, int32_t pid){
+    successor next;
+    find_successor(next, pid - 1);
+    Node* temp = new Node(next.id, next.port);
+    enter(this->id, "gft");
+    pthread_mutex_lock(&transport_mutex);
+    temp->open_connection();
+    temp->connection->gen_finger_table(_return);
+    temp->close_connection();
+    pthread_mutex_unlock(&transport_mutex);
+    enter(this->id, "gft");
+    delete temp;
   }
 
 
   void add_node() {
     // Your implementation goes here
-    //printf("RPC\n");
   }
 
 
+  /*
+   *
+   *Adds file to the system. If the current node is the only node in the system
+   *then we go ahead and store it there. 
+   *
+   */
   void add_file(key_and_node& _return, const std::string& filename, const std::string& data) {
     int key = generate_sha1(filename);
     //if we're the only node in the system,
@@ -125,9 +234,11 @@ class ChordHandler : virtual public ChordIf {
       }
       else{
         Node* temp = new Node(succ.id, succ.port);
+        pthread_mutex_lock(&transport_mutex);
         temp->open_connection();
         temp->connection->transfer_file(key, data, filename);
         temp->close_connection();
+        pthread_mutex_unlock(&transport_mutex);
         _return.node_id = succ.id;
         delete temp;
       }
@@ -136,6 +247,10 @@ class ChordHandler : virtual public ChordIf {
   }
 
 
+  /*
+   * Deletes files from the system. Searches for the file. Stores results in a key_and_node struct,
+   * and if it doesn't exist, the success field is false.
+   */
   void del_file(key_and_node& _return, const std::string& filename) {
     int key = generate_sha1(filename);
     map<int, pair<string, string> >::iterator it = data_table.find(key);
@@ -172,6 +287,10 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
+  /*
+   *Removes file from a given node; meant to be used as an RPC call.
+   * Stores results in a key_and_node struct.
+   */
   void remove_file(key_and_node& _return, const int32_t key){
     map<int, pair<string, string> >::iterator it = data_table.find(key);
     _return.key = key;
@@ -185,6 +304,10 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
+  /*
+   * Gets file that corresponds to a given filename. Hashes it to SHA1 and
+   * find the node that it belongs to.
+   */
   void get_file(key_and_node& _return, const string& filename){
     int key = generate_sha1(filename);
     map<int, pair<string, string> >::iterator it;
@@ -217,21 +340,30 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
+  /*
+   * Transfers file to the node called with it. Used as an RPC call. Also used in
+   * notify to migrate keys.
+   */
   void transfer_file(const int32_t key, const string& data, const string& filename) {
     data_table[key] = pair<string, string>(data, filename);
   }
 
   void get_table() {
     // Your implementation goes here
-    //printf("get_table\n");
   }
 
+  /*
+   * Returns predecessor of the current node.
+   */
   void current_pred(predecessor& _return){
-    ////printf("Telling someone that my pred's id is %d\n", pred.id);
     _return.id = this->pred.id;
     _return.port = this->pred.port;
   }
 
+  /*
+   * Tells node that node pid at port new_port believes it is its successor.
+   * If its the case, this node will try to transfer keys.
+   */
   void notify(const int32_t pid, const int32_t new_port) {
     if(pid != this->id && (pred.id == this->id || in_range(pred.id, this->id, pid))){
       if(pred.id != pid){
@@ -244,12 +376,14 @@ class ChordHandler : virtual public ChordIf {
         for(it = data_table.begin(); it != data_table.end(); ++it){
           val = it->first;
           if(val <= pid){
+            enter(this->id, "notify");
             pthread_mutex_lock(&transport_mutex);
             new_node->open_connection();
             pair<string, string> _data = it->second;
             new_node->connection->transfer_file(val, _data.first, _data.second);
             new_node->close_connection();
             pthread_mutex_unlock(&transport_mutex);
+            leave(this->id, "notify");
             data_table.erase(it);
           }
         }
@@ -261,7 +395,7 @@ class ChordHandler : virtual public ChordIf {
   //we can assume that add_node won't be called with an id that has alreayd 
   //been used
   void join_network(successor& _return, const int32_t pid){
-    //printf("Joining das network\n");
+    printf("%d reporting for duty\n", pid);
     this->find_successor(_return, pid);
   }
 
@@ -271,11 +405,9 @@ class ChordHandler : virtual public ChordIf {
   }
   void find_successor(successor& _return, const int32_t pid) {
     neighbor returned;
-    //printf("Before find pred\n");
     this->find_predecessor(returned, pid);
     _return.id = returned.succ_id;
     _return.port = returned.succ_port;
-    //printf("End of find successor: %d::%d\n", _return.id, _return.port);
   }
 
   //this function isn't necessary right now, but we'll keep it
@@ -293,13 +425,26 @@ class ChordHandler : virtual public ChordIf {
       _return.succ_port = this->port;
     }
     while(!in_range(_return.id, _return.succ_id, pid)){
-      cur = new Node(_return.id, _return.port);
-      cur->open_connection();
-      cur->connection->closest_preceding_finger(_return, pid);
-      cur->close_connection();
+      if(_return.id != this->id){
+        cur = new Node(_return.id, _return.port);
+        enter(this->id, "find_p");
+        pthread_mutex_lock(&transport_mutex);
+        cur->open_connection();
+        cur->connection->closest_preceding_finger(_return, pid);
+        cur->close_connection();
+        pthread_mutex_unlock(&transport_mutex);
+        leave(this->id, "find_p");
+      }
+      else{
+        closest_preceding_finger(_return, pid);
+      }
     }
   }
 
+  /*
+   * Function to check if a number is between two numbers on an arc.
+   * This function is used extensively in the paper.
+   */
   bool in_range(int left, int right, int t){
     bool returned;
     if(left > right){
@@ -315,7 +460,6 @@ class ChordHandler : virtual public ChordIf {
     }
     if(left == right) returned = true;
 
-    _x++;
     return returned;
   }
 
@@ -329,11 +473,13 @@ class ChordHandler : virtual public ChordIf {
         _return.id = entry->id;
         _return.port = entry->port;
         successor succ;
+        enter(this->id, "cpf");
         pthread_mutex_lock(&transport_mutex);
         entry->open_connection();
         entry->connection->get_successor(succ);
         entry->close_connection();
         pthread_mutex_unlock(&transport_mutex);
+        leave(this->id, "cpf");
         _return.succ_id = succ.id;
         _return.succ_port = succ.port;
         return;
@@ -370,16 +516,20 @@ class ChordHandler : virtual public ChordIf {
     return 0;
   }
   
+  /*
+   * Set's current node's ith finger to be id new_id Set's current node's ith finger to be id new_id
+   */
   void set_finger(int new_id, int new_port, int i){
-    pthread_mutex_lock(&m_mutex);
+    pthread_mutex_lock(&transport_mutex);
     Node* curr = this->finger_table->at(i);
     if(curr != NULL){
       if(curr->id == new_id){
-        pthread_mutex_unlock(&m_mutex);
+        pthread_mutex_unlock(&transport_mutex);
         return;
       }
-      else
-        delete curr;
+      else{
+
+      }
     }
     if(new_id == this->id){
       (*(this->finger_table))[i] = NULL;
@@ -388,7 +538,7 @@ class ChordHandler : virtual public ChordIf {
       (*(this->finger_table))[i] = new Node(new_id, new_port);
     }
 
-    pthread_mutex_unlock(&m_mutex);
+    pthread_mutex_unlock(&transport_mutex);
   }
 
 
@@ -397,22 +547,21 @@ class ChordHandler : virtual public ChordIf {
     Node* curr = this->finger_table->at(0);
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
-      pthread_mutex_lock(&m_mutex);
+      pthread_mutex_lock(&transport_mutex);
       (*(this->finger_table))[0] = new Node(id, port);
-      pthread_mutex_unlock(&m_mutex);
+      pthread_mutex_unlock(&transport_mutex);
     }
     else{
       //only do this stuff if it's a new node!
       if(curr->id != id){
-        delete curr;
-        pthread_mutex_lock(&m_mutex);
+        pthread_mutex_lock(&transport_mutex);
         (*(this->finger_table))[0] = new Node(id, port);
-        pthread_mutex_unlock(&m_mutex);
+        pthread_mutex_unlock(&transport_mutex);
 
         curr = this->finger_table->at(0);
         pthread_mutex_lock(&transport_mutex);
         curr->notify(this->id, this->port);
-        pthread_mutex_lock(&transport_mutex);
+        pthread_mutex_unlock(&transport_mutex);
       }
     }
   }
@@ -439,14 +588,6 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  Node* atomic_get_node(int i){
-    Node* returned;
-    pthread_mutex_lock(&m_mutex);
-    returned = this->finger_table->at(i);
-    pthread_mutex_unlock(&m_mutex);
-    return returned;
-  }
-
   int generate_sha1(const string& input){
     SHA1Context sha;
     SHA1Reset(&sha);
@@ -456,18 +597,18 @@ class ChordHandler : virtual public ChordIf {
     return key_id;
   }
 
+  vector<int>* start_values;
+
+  int id;
  private:
   int m;
-  int id;
   int introducer_port;
   int port;
   int stabilize_interval;
   int fix_interval;
   pthread_t stabilize_thread;
   pthread_t fix_thread;
-  pthread_mutex_t m_mutex;
   pthread_mutex_t transport_mutex;
-  vector<int>* start_values;
 
   void stabilize(){
     Node* successor;
@@ -504,26 +645,41 @@ class ChordHandler : virtual public ChordIf {
 
   }
 
+  int calc_start(int i){
+    return (this->id + (1 << (i-1))) % this->power;
+  }
+
+  /*
+   * Method used by finger thread to keep updating fingers. 
+   *  Sleeps "fix_interval" seconds before each poke.
+   */
   void fix_fingers(){
     successor next;
-    srand(time(NULL));
+    srand(seed);
     int pick, curr_start;
     while(true){
       sleep(this->fix_interval);
-      pick = rand() % (m-1) + 1;
-      curr_start = this->start_values->at(pick);
-        find_successor(next, curr_start);
-      set_finger(next.id, next.port, pick);
-      //print_fingers();
+      for(int i=1; i<=this->m; i++){
+        find_successor(next, calc_start(i));
+        set_finger(next.id, next.port, i-1);
+      }
     }
   }
 
+  /*
+   * Starts stabilization thread, using some weird method I found online.
+   * This is necessary for pthreads it seems.
+   */
   static void* start_stabilize(void* arg) {
     ChordHandler* h = reinterpret_cast<ChordHandler*>(arg);
     h->stabilize();
     pthread_exit(0);
   }
 
+  /*
+   * Starts finger fixing thread, using some weird method I found online.
+   * This is necessary for pthread it seems, because it requires :642
+   */
   static void* start_fix(void* arg){
     ChordHandler* h = reinterpret_cast<ChordHandler*>(arg);
     h->fix_fingers();
@@ -532,6 +688,10 @@ class ChordHandler : virtual public ChordIf {
 
 };
 
+/*
+ * Parses command line arguments sent in by listener, and then creates a new
+ * ChordHandler object.
+ */
 ChordHandler* init_node(int argc, char** argv){
   int id = -1;
   int port = -1;
@@ -563,6 +723,9 @@ ChordHandler* init_node(int argc, char** argv){
     else if (arg == "--stabilizeInterval"){
       stabilize_interval = num;
     }
+    else if (arg == "--seed"){
+      seed = num;
+    }
   }
 
   if(id != 0 && introducer_port == -1){
@@ -586,6 +749,6 @@ int main(int argc, char **argv) {
 
   //spawn thread to take care of stabilization stuff
   
-  server.serve();
+    server.serve();
   return 0;
 }
