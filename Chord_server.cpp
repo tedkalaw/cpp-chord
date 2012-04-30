@@ -5,6 +5,7 @@
 #include "Chord.h"
 #include <math.h>
 #include "sha1.h"
+#include "log.hpp"
 #include "Chord_Listener.h"
 #include <string>
 #include <protocol/TBinaryProtocol.h>
@@ -24,6 +25,17 @@
 #define ME NULL
 #define SUCCESSOR 0
 #define NO_PREDECESSOR -1
+
+
+// create a static logger, local to the current function, named with
+// the function's name
+#define INIT_LOCAL_LOGGER() \
+    static log4cxx::LoggerPtr _local_logger = g_logger->getLogger(__func__)
+
+// log using the current function's local logger (created by
+// INIT_LOCAL_LOGGER)
+#define LOGDEBUG(x) LOG4CXX_DEBUG(_local_logger, x)
+#define LOGINFO(x) LOG4CXX_INFO(_local_logger, x)
 
 using namespace std;
 using namespace ::apache::thrift;
@@ -700,6 +712,7 @@ ChordHandler* init_node(int argc, char** argv){
   int num;
   int stabilize_interval = 1;
   int fix_interval = 1;
+  string new_log = "";
 
   //cout << argc << endl;
   for(int i=0; i<argc; i++){
@@ -723,6 +736,9 @@ ChordHandler* init_node(int argc, char** argv){
     else if (arg == "--stabilizeInterval"){
       stabilize_interval = num;
     }
+    else if (arg == "--logConf"){
+      new_log = argv[i+1];
+    }
     else if (arg == "--seed"){
       seed = num;
     }
@@ -732,6 +748,12 @@ ChordHandler* init_node(int argc, char** argv){
     std::cerr << "Need to include introducer port. Shutting down now." << endl;
     exit(1);
   }
+
+  if(new_log != "")
+    configureLogging(new_log.c_str());
+  else
+    configureLogging(NULL);
+
 
   //cout << "Successfully listening" << endl;
   return (new ChordHandler(m, id, port, introducer_port, stabilize_interval, fix_interval));

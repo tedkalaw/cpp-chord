@@ -52,6 +52,10 @@ void attach_to_node(int port){
   init_sockets(_socket, _transport, _protocol, port);
 }
 
+/*
+ * Inserts id, port, and intro_port into their proper places in the argumetns
+ * array that will be sent to ./node
+ */
 void insert_args(int id, int port, int intro_port){
   string a;
   a = boost::lexical_cast<string>(id);
@@ -102,10 +106,11 @@ void create_introducer(){
 
 }
 
-void create_node(int new_id){
+void create_node(int new_id, bool is_introducer){
   bool done = false;
   pid_t child;
-  new_port = rand() % 8000 + 1999;
+  if(!is_introducer)
+    new_port = rand() % 8000 + 1999;
   while(!done){
     usleep(100000);
     switch(child = fork()){
@@ -308,7 +313,7 @@ int main(int argc, char **argv) {
   set_args(argc, argv);
   initialize_args();
   if(attach_node == ""){
-    create_introducer();
+    create_node(0, true);
   }
   else{
     int new_port = boost::lexical_cast<int>(attached);
@@ -353,7 +358,7 @@ int main(int argc, char **argv) {
         } else if(strs[0] == "ADD_NODE"){
           for(int i=1; i<strs.size(); i++){
             int x = boost::lexical_cast<int>(strs[i]);
-            create_node(boost::lexical_cast<int>(strs[i]));
+            create_node(boost::lexical_cast<int>(strs[i]), false);
           }
         }
         else if(strs[0] == "GET_FILE"){
