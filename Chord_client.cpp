@@ -77,34 +77,6 @@ void insert_args(int id, int port, int intro_port){
 
 }
 
-void create_introducer(){
-  bool done = false;
-  pid_t child;
-  while(!done){
-    switch(child = fork()){
-      case 0: insert_args(0, new_port, 0);
-              execv("./node", args);
-              break;
-
-      default: usleep(10000);
-    }
-
-    if(child != 0){
-      init_sockets(_socket, _transport, _protocol, new_port);
-      try{
-        _transport->open();
-        break;
-      }
-      catch(apache::thrift::transport::TTransportException& e){
-        new_port = rand() % 8000 + 1999;
-        continue;
-      }
-    }
-  }
-  
-  introductor_port = new_port;
-
-}
 
 void create_node(int new_id, bool is_introducer){
   bool done = false;
@@ -117,12 +89,13 @@ void create_node(int new_id, bool is_introducer){
       case 0: insert_args(new_id, new_port, introductor_port);
               execv("./node", args);
 
-      default: break;
+      default: usleep(100000);
     }
 
     if(child != 0){
       init_sockets(_socket, _transport, _protocol, new_port);
       try{
+        _transport->open();
         done = true;
         usleep(100000);
       }
@@ -131,6 +104,12 @@ void create_node(int new_id, bool is_introducer){
       }
     }
   }
+
+  if(is_introducer){
+    introductor_port = new_port;
+  }
+  else
+    _transport->close();
 
 }
 
