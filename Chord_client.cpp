@@ -34,6 +34,9 @@ string stabilize_interval = "";
 string fix_interval = "";
 string log_conf = "";
 int num_arguments = 0;
+
+//Stores the formatted arguments that will be used in the exec call
+//when we make a new node.
 char** args;
 int introductor_port = 0;
 
@@ -48,13 +51,13 @@ void init_sockets(boost::shared_ptr<TSocket>& socket, boost::shared_ptr<TTranspo
   protocol = boost::shared_ptr<TProtocol> (new TBinaryProtocol(transport));
 }
 
-void attach_to_node(int port){
-  init_sockets(_socket, _transport, _protocol, port);
-}
-
 /*
  * Inserts id, port, and intro_port into their proper places in the argumetns
  * array that will be sent to ./node
+ *
+ * id: --id arg
+ * port: --port arg
+ * intro_port: --introducerPort flag
  */
 void insert_args(int id, int port, int intro_port){
   string a;
@@ -74,10 +77,22 @@ void insert_args(int id, int port, int intro_port){
   len = a.length() + 1;
   args[8] = new char[len];
   strncpy(args[8], a.c_str(), len);
-
 }
 
-
+/*
+ * Creates new node. Execs and then waits a little to give the 
+ * node a chance to start; after one second, it attempts to connect.
+ * If the connection is successful (and the node is not the introducer) 
+ * the connection is closed. If the node is the introducer, then the
+ * connection stays open.
+ *
+ * If the connection is not made, then we know that the node can't have been
+ * created properly, so we pick a random number and pick a new one.
+ *
+ * new_id: id of new node to add
+ * is_introducer: true if node is introducer
+ *
+ */
 void create_node(int new_id, bool is_introducer){
   bool done = false;
   pid_t child;
@@ -112,6 +127,10 @@ void create_node(int new_id, bool is_introducer){
 
 }
 
+/*
+ * Creates the array that will be fed to ./node on the commandline.
+ * Just puts them in the right places, allocates memory, and whatnot.
+ */
 void initialize_args(){
   int num = 10 + 2 * num_arguments;
   int end = num - 1;
@@ -182,6 +201,11 @@ void initialize_args(){
 /*
  * Takes in information about a DEL action and returns the formatted string as specified.
  *
+ * fname: name of file
+ * key: value of key
+ * nodeID: id of node that did the DEL
+ * success: true if the file was found and deleted
+ *
  */
 string get_DEL_FILE_result_as_string(const char* fname, const int32_t key, const int32_t nodeID, bool success){
   std::stringstream s;
@@ -201,6 +225,10 @@ string get_DEL_FILE_result_as_string(const char* fname, const int32_t key, const
  * Takes in information about a ADD action and returns the formatted
  * string as specified.
  *
+ * fname: name of file
+ * key: value of key
+ * nodeID: id of node that did the ADD
+ * success: true if the file was found and added
  */
 string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
     const int32_t nodeID){
@@ -215,6 +243,11 @@ string get_ADD_FILE_result_as_string(const char* fname, const int32_t key,
  * Takes in information about a GET action and returns the formatted
  * string as specified.
  *
+ * fname: name of file
+ * key: value of key
+ * nodeID: id of node that did the GET
+ * success: true if the file was found and added
+ * fdata: data stored at location
  */
 string get_GET_FILE_result_as_string(const char *fname,
     const int32_t key,
@@ -240,10 +273,12 @@ string get_GET_FILE_result_as_string(const char *fname,
 /*
  * Builds the argument  array to give to the exec call.
  * Uses the global "arg" to store all of the variables.
+ *
+ * argc: argc passed in from commandline
+ * argv: argv passed in from commandline
  */
 void set_args(int argc, char **argv){
   string arg;
-  bool valid = false;
   bool intro = false;
   for(int i=1; i<argc; i+=2){
     arg = argv[i];
@@ -300,22 +335,15 @@ int main(int argc, char **argv) {
     introductor_port = new_port;
   }
 
-  bool valid = false;
-  //init_sockets(socket, transport, protocol, 9090);
 
   ChordClient client(_protocol);
   //want to add the original introducer node
 
-  printf("Welcome to node listener\n");
+  printf("Chord active.\n");
   while(1){
 
 	//40 should be enough, whatever we can change it 
         string input;
-	printf("ADD_NODE <node ID(s)> \n");
-	printf("ADD_FILE <filename><data> \n");
-	printf("DEL_FILE <filename>\n");
-	printf("GET_FILE <filename>\n");
-	printf("GET_TABLE <node ID>\n");
         getline(cin, input);
         std::vector<std::string> strs;
         boost::split(strs, input, boost::is_any_of(" "));
@@ -335,7 +363,6 @@ int main(int argc, char **argv) {
           cout << output << endl;
         } else if(strs[0] == "ADD_NODE"){
           for(int i=1; i<strs.size(); i++){
-            int x = boost::lexical_cast<int>(strs[i]);
             create_node(boost::lexical_cast<int>(strs[i]), false);
           }
         }

@@ -74,7 +74,6 @@ class ChordHandler : virtual public ChordIf {
     int power = 1;
     power <<= m;
     this->power = power;
-    this->gen_start_values();
 
     printf("constructor called with id: %d, port: %d, introducer: %d\n", id, port, introducer_port);
 
@@ -107,8 +106,11 @@ class ChordHandler : virtual public ChordIf {
   }
 
   /*
-   *Grab file data from a given node
-   *Returns a populated key_and_node struct
+   * RPC call; the node executing this call will extract the data it has
+   * for the key.
+   *
+   * _return: key_and_node struct to store result in
+   * key: key of file in data store
    */
   void snatch_file(key_and_node& _return, const int32_t key){
     map<int, pair<string, string> >::iterator it = data_table.find(key);
@@ -129,7 +131,7 @@ class ChordHandler : virtual public ChordIf {
 
   /*
    *Generates the key table for a given node, and stores this string
-   * _return
+   * _return: stringified v ersion of key table
    */
   void gen_key_table(string& _return){
     stringstream s;
@@ -150,6 +152,9 @@ class ChordHandler : virtual public ChordIf {
    * Generates the key table and finger table for a given pid. If the requested pid 
    * is equal to our own, we simply check it ourselves. Otherwise, we calculate
    * them and store them in _return.
+   *
+   * _return: stringified version of tables
+   * pid: id whose tables we want
    */
   void get_tables(string& _return, int32_t pid){
     string finger;
@@ -167,6 +172,9 @@ class ChordHandler : virtual public ChordIf {
 
   /*
    * Generates key table for a given pid. Same as above.
+   *
+   * _return: stringifed key table
+   * pid: id whose key table we want
    */
   void get_key_table(string& _return, int32_t pid){
     successor next;
@@ -183,6 +191,8 @@ class ChordHandler : virtual public ChordIf {
   /*
    *  Generates finger table for a given node and stores it 
    *  in _return. Creates formatted string.
+   *
+   *  _return: stringified finger table
    */
   void gen_finger_table(string& _return){
     stringstream s;
@@ -206,6 +216,9 @@ class ChordHandler : virtual public ChordIf {
   /*
    * Grabs finger table for a given pid and stores it in _return. 
    * Does not do the computation - is meant to be used as an RPC call.
+   *
+   * _return: stringified version of table
+   * pid: id of table whose table we want
    */
   void get_finger_table(string& _return, int32_t pid){
     successor next;
@@ -230,6 +243,9 @@ class ChordHandler : virtual public ChordIf {
    *Adds file to the system. If the current node is the only node in the system
    *then we go ahead and store it there. 
    *
+   * _return: result data for client to use
+   * filename: name of file
+   * data: data to be stored at node
    */
   void add_file(key_and_node& _return, const std::string& filename, const std::string& data) {
     int key = generate_sha1(filename);
@@ -265,6 +281,9 @@ class ChordHandler : virtual public ChordIf {
   /*
    * Deletes files from the system. Searches for the file. Stores results in a key_and_node struct,
    * and if it doesn't exist, the success field is false.
+   *
+   * _return: result data for use by client
+   * filename: name of file
    */
   void del_file(key_and_node& _return, const std::string& filename) {
     int key = generate_sha1(filename);
@@ -372,7 +391,11 @@ class ChordHandler : virtual public ChordIf {
 
   /*
    * Transfers file to the node called with it. Used as an RPC call. Also used in
-   * notify to migrate keys.
+   * notify to migrate keys of their new responsibilities.
+   *
+   * key: key of file
+   * data: stored data
+   * filename: name of file
    */
   void transfer_file(const int32_t key, const string& data, const string& filename) {
         INIT_LOCAL_LOGGER();
@@ -395,6 +418,9 @@ class ChordHandler : virtual public ChordIf {
   /*
    * Tells node that node pid at port new_port believes it is its successor.
    * If its the case, this node will try to transfer keys.
+   *
+   * pid: id of node notifying
+   * port: port of node notifying
    */
   void notify(const int32_t pid, const int32_t new_port) {
     if(pid != this->id && (pred.id == this->id || in_range(pred.id, this->id, pid))){
@@ -424,28 +450,46 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  //tell the introducer that we are joining
-  //we can assume that add_node won't be called with an id that has alreayd 
-  //been used
+  /*
+   * Tell the introducer that a node is joining; the joining node has id pid.
+   *
+   * _return: id/port pair in struct
+   * pid: id of node joining network
+  */
   void join_network(successor& _return, const int32_t pid){
     this->find_successor(_return, pid);
   }
 
+  /*
+   * RPC call; returns this nodes successor.
+   *
+   * _return: id/port pair in struct.
+   */
   void get_successor(successor& _return){
     _return.id = this->finger_table->at(0)->id;
     _return.port = this->finger_table->at(0)->port;
   }
+
+  /*
+   * Find's the successor of pid.
+   *
+   * _return: struct to store successor's id and port number.
+   * pid: id of node whose successor we want to find.
+   */
   void find_successor(successor& _return, const int32_t pid) {
     neighbor returned;
     this->find_predecessor(returned, pid);
-
 
     _return.id = returned.succ_id;
     _return.port = returned.succ_port;
   }
 
-  //this function isn't necessary right now, but we'll keep it
-  //so that the code is consistent with the white paper
+  /*
+   * Find predecessor, as defined in the paper.
+   *
+   * _return: struct to store neighbor's information for use in the loop
+   * pid: id of node whose successor we are trying to find
+   */
   void find_predecessor(neighbor& _return, const int32_t pid) {
     Node* cur;
     _return.id = this->id;
@@ -458,7 +502,6 @@ class ChordHandler : virtual public ChordIf {
       _return.succ_id = this->id;
       _return.succ_port = this->port;
     }
-    int i=0;
     while(!in_range(_return.id, _return.succ_id-1, pid)){
       if(_return.id != this->id){
         cur = new Node(_return.id, _return.port);
@@ -497,6 +540,13 @@ class ChordHandler : virtual public ChordIf {
     return returned;
   }
 
+  /*
+   * Finds this node's clsoest preceding finger. As defined in white paper.
+   *
+   * _return: struct to store the finger's information
+   * pid: id of node to search for
+   *
+   */
   void closest_preceding_finger(neighbor& _return, const int32_t pid){
     int i = this->m-1;
     Node* entry;
@@ -507,11 +557,15 @@ class ChordHandler : virtual public ChordIf {
         _return.id = entry->id;
         _return.port = entry->port;
         successor succ;
+
+        //Lock communication channels, and get the succesor of this node to use
+        //in the loop in find_predecessor
         pthread_mutex_lock(&transport_mutex);
         entry->open_connection();
         entry->connection->get_successor(succ);
         entry->close_connection();
         pthread_mutex_unlock(&transport_mutex);
+
         _return.succ_id = succ.id;
         _return.succ_port = succ.port;
         return;
@@ -534,33 +588,39 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  //class functions
+  /*
+   * port getter
+   */
   int get_port(){
     return this->port;
   }
 
+  /*
+   * id getter
+   */
   int get_id(){
     return this->id;
   }
 
-  //we'll make this just return the first element in our finger table
-  int get_succ(){
-    return 0;
-  }
-  
   /*
    * Set's current node's ith finger to be id new_id Set's current node's ith finger to be id new_id
+   *
+   * new_id: id of new node to add as a finger
+   * new_port: port of new node to add as a finger
+   * i: position in finger table
    */
   void set_finger(int new_id, int new_port, int i){
     pthread_mutex_lock(&transport_mutex);
     Node* curr = this->finger_table->at(i);
+    //if we are not pointing at ourselves
     if(curr != NULL){
+      //and the value that's stored is the same as the new one
       if(curr->id == new_id){
+        //we don't need to change anything
         pthread_mutex_unlock(&transport_mutex);
         return;
       }
     }
-
 
     INIT_LOCAL_LOGGER();
     int node_id;
@@ -574,8 +634,10 @@ class ChordHandler : virtual public ChordIf {
     }
     else{
       if((curr == NULL && new_id == this-> id)) {
+        //do nothing; this can only happen if there is only one node in the system
       }
       else{
+        //point new finger
         (*(this->finger_table))[i] = new Node(new_id, new_port);
         node_id = new_id;
         INIT_LOCAL_LOGGER();
@@ -588,26 +650,30 @@ class ChordHandler : virtual public ChordIf {
   }
 
 
-  //manage connection here?
+  /*
+   * Set current node's successor to the node with id new_id and port port.
+   *
+   * new_id: id of new successor
+   * port: port of new successor to connect on
+   */
   void set_succ(int new_id, int port){
     Node* curr = this->finger_table->at(0);
-    int x;
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
       if(this->id == 2)
       pthread_mutex_lock(&transport_mutex);
       (*(this->finger_table))[0] = new Node(new_id, port);
       pthread_mutex_unlock(&transport_mutex);
-      x = -1;
     }
     else{
       //only do this stuff if it's a new node!
       if(curr->id != new_id){
-        x = this->finger_table->at(0)->id;
+        //Set new successor at 0th position in finger_table
         pthread_mutex_lock(&transport_mutex);
         (*(this->finger_table))[0] = new Node(new_id, port);
         pthread_mutex_unlock(&transport_mutex);
 
+        //Lock communication channels and notify our successor
         curr = this->finger_table->at(0);
         pthread_mutex_lock(&transport_mutex);
         curr->notify(this->id, this->port);
@@ -617,27 +683,33 @@ class ChordHandler : virtual public ChordIf {
   }
 
 
+  /*
+   * Starts node's stabilize and fix_fingers threads
+   */
   void start(){
     pthread_create(&stabilize_thread, NULL, start_stabilize, this);
     pthread_create(&fix_thread, NULL, start_fix, this);
   }
 
+  //Reference to introducer
   ChordClient* introducer;
+
+  //Finger table
   vector<Node*>* finger_table;
+
+  //Precomputed 2^m
   int power;
   predecessor pred;
-  //****
+
+  //Data store for files
+  //Key is int, value is a pair of strings (filename, data)
   map<int, pair<string,string> > data_table;
 
-  //verify current node's successor
-  //
-  void gen_start_values(){
-    start_values = new vector<int>(m+1, this->id);
-    for(int i=0; i<=m; i++){
-      (*(start_values))[i] = (this->id + (1 << (i))) % power;
-    }
-  }
-
+  /*
+   * Generates SHA1 hash from the input, using same method as in hash_examples.
+   *
+   * input: input string to generate hash from
+   */
   int generate_sha1(const string& input){
     SHA1Context sha;
     SHA1Reset(&sha);
@@ -651,21 +723,31 @@ class ChordHandler : virtual public ChordIf {
 
   int id;
  private:
+
   int m;
   int introducer_port;
   int port;
   int stabilize_interval;
   int fix_interval;
+
+  //Threads and mutex
   pthread_t stabilize_thread;
   pthread_t fix_thread;
+  
+  //Mutex for communication channels so that they aren't closed prematurely
   pthread_mutex_t transport_mutex;
 
+  /*
+   * Stabilize method; executes every stabilizeInterval seconds.
+   * Has its own dedicated thread.
+   */
   void stabilize(){
     Node* successor;
     predecessor next;
     while(true){
       sleep(this->stabilize_interval);
       successor = this->finger_table->at(SUCCESSOR);
+      //if our successor is not us (only happens if there is only one node)
       if(successor != NULL){
         pthread_mutex_lock(&transport_mutex);
         successor->current_pred(next);
@@ -675,6 +757,8 @@ class ChordHandler : virtual public ChordIf {
           this->set_succ(next.id, next.port);
           successor = this->finger_table->at(SUCCESSOR);
         }
+
+        //lock communication channels, notify successor
         pthread_mutex_lock(&transport_mutex);
         successor->notify(this->id, this->port);
         pthread_mutex_unlock(&transport_mutex);
@@ -687,14 +771,9 @@ class ChordHandler : virtual public ChordIf {
     }
   }
 
-  void print_fingers(){
-    Node* curr;
-    for(int i=0; i<m; i++){
-      curr = this->finger_table->at(i);
-    }
-
-  }
-
+  /*
+   * Calculates the start value for a given i.
+   */
   int calc_start(int i){
     return (this->id + (1 << (i-1))) % this->power;
   }
@@ -706,7 +785,6 @@ class ChordHandler : virtual public ChordIf {
   void fix_fingers(){
     successor next;
     srand(seed);
-    int pick, curr_start;
     while(true){
       sleep(this->fix_interval);
       for(int i=2; i<=this->m; i++){
@@ -728,7 +806,8 @@ class ChordHandler : virtual public ChordIf {
 
   /*
    * Starts finger fixing thread, using some weird method I found online.
-   * This is necessary for pthread it seems, because it requires :642
+   * This is necessary for pthread it seems, because it requires a function
+   * instead of a method. I don't know what a reinterpret_cast does, to be honest.
    */
   static void* start_fix(void* arg){
     ChordHandler* h = reinterpret_cast<ChordHandler*>(arg);
@@ -740,7 +819,7 @@ class ChordHandler : virtual public ChordIf {
 
 /*
  * Parses command line arguments sent in by listener, and then creates a new
- * ChordHandler object.
+ * ChordHandler object. Also initializes logging.
  */
 ChordHandler* init_node(int argc, char** argv){
   int id = -1;
@@ -752,7 +831,6 @@ ChordHandler* init_node(int argc, char** argv){
   int fix_interval = 1;
   string new_log = "";
 
-  //cout << argc << endl;
   for(int i=0; i<argc; i++){
   }
 
@@ -782,18 +860,12 @@ ChordHandler* init_node(int argc, char** argv){
     }
   }
 
-  if(id != 0 && introducer_port == -1){
-    std::cerr << "Need to include introducer port. Shutting down now." << endl;
-    exit(1);
-  }
-
   if(new_log != "")
     configureLogging(new_log.c_str());
   else
     configureLogging(NULL);
 
 
-  //cout << "Successfully listening" << endl;
   return (new ChordHandler(m, id, port, introducer_port, stabilize_interval, fix_interval));
 }
 

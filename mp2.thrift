@@ -1,11 +1,9 @@
 namespace cpp mp2
 
-//need a structure to deal with nodes
+//First struct we made;
+//Not actually used
 struct node 
 {
-  //this may be all we need for now
-  //may add something later for fingers to a node
-  //may add something later for actual data... idk
   1: i32 my_m,
   2: i32 my_id,
   3: i32 my_port,
@@ -13,6 +11,9 @@ struct node
 
 }
 
+//Stores information about a given node
+//Used in find_predecessor so we can use both its information
+//And the information about its successor for the comparison
 struct neighbor
 {
   1: i32 id,
@@ -21,18 +22,23 @@ struct neighbor
   4: i32 succ_port,
 }
 
+//Stores id and port of successor
 struct successor
 {
   1: i32 id,
   2: i32 port
 }
 
+//Stores id and port of predecessor; no difference from above, just used
+//For readability purposes
 struct predecessor
 {
   1: i32 id,
   2: i32 port
 }
 
+//Stores information about a add/del/get/etc operation.
+//Has all of the information needed to print back.
 struct key_and_node{
   1: i32 key,
   2: i32 node_id,
@@ -40,26 +46,10 @@ struct key_and_node{
   4: string data
 }
 
-struct UserProfile {
-  1: i32 uid,
-  2: string name,
-  3: string blurb
-}
-
-struct previous_try{
-  1: i32 left,
-  2: i32 right,
-  3: i32 t
-}
-
-
-
-//service in which a node talks to a node
+//Service in which a node talks to a node
 service Chord
 {
 
-	//this may be all we need so far
-	//now to determine who does what
 	void add_node(),
 	key_and_node add_file(1: string filename, 2: string data),
 	key_and_node del_file(1: string filename),
