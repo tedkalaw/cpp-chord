@@ -46,6 +46,8 @@ using namespace ::apache::thrift::server;
 using boost::shared_ptr;
 
 using namespace  ::mp2;
+pthread_mutex_t d;
+int two;
 
 bool _debug = false;
 
@@ -416,8 +418,20 @@ class ChordHandler : virtual public ChordIf {
     _return.port = this->finger_table->at(0)->port;
   }
   void find_successor(successor& _return, const int32_t pid) {
+    /*
+    if(this->id == 2 && pid == 10){
+      printf("my id is 2 and i am trying to find the successor of 10\n");
+    }
+    */
     neighbor returned;
     this->find_predecessor(returned, pid);
+
+
+    /*
+    if(this->id == 2 && pid == 10){
+      printf("my id is 2 and the successor to 10 is %d\n", returned.succ_id);
+    }
+    */
     _return.id = returned.succ_id;
     _return.port = returned.succ_port;
   }
@@ -436,7 +450,12 @@ class ChordHandler : virtual public ChordIf {
       _return.succ_id = this->id;
       _return.succ_port = this->port;
     }
-    while(!in_range(_return.id, _return.succ_id, pid)){
+    /*
+    if(id ==2 && pid == 10)
+      printf("Lookin at pred: the current succ_id is %d\n", _return.succ_id);
+      */
+    int i=0;
+    while(!in_range(_return.id, _return.succ_id-1, pid)){
       if(_return.id != this->id){
         cur = new Node(_return.id, _return.port);
         enter(this->id, "find_p");
@@ -451,6 +470,10 @@ class ChordHandler : virtual public ChordIf {
         closest_preceding_finger(_return, pid);
       }
     }
+    /*
+    if(pid == 10)
+      printf("just finished this thang, so %d is on %d, %d\n", pid, _return.id, _return.succ_id);
+      */
   }
 
   /*
@@ -470,7 +493,14 @@ class ChordHandler : virtual public ChordIf {
     else{
       returned = (t >= left) && (t <= right);
     }
-    if(left == right) returned = true;
+    if(left == right) returned = (left == t);
+
+    /*
+    if(returned)
+      printf("%d is on %d, %d\n", t, left, right);
+    else
+      printf("%d is not on %d, %d\n", t, left, right);
+      */
 
     return returned;
   }
@@ -555,19 +585,23 @@ class ChordHandler : virtual public ChordIf {
 
 
   //manage connection here?
-  void set_succ(int id, int port){
+  void set_succ(int new_id, int port){
     Node* curr = this->finger_table->at(0);
+    int x;
     //no successor - either new node or the only node in the system!
     if(curr == NULL){
+      if(this->id == 2)
       pthread_mutex_lock(&transport_mutex);
-      (*(this->finger_table))[0] = new Node(id, port);
+      (*(this->finger_table))[0] = new Node(new_id, port);
       pthread_mutex_unlock(&transport_mutex);
+      x = -1;
     }
     else{
       //only do this stuff if it's a new node!
-      if(curr->id != id){
+      if(curr->id != new_id){
+        x = this->finger_table->at(0)->id;
         pthread_mutex_lock(&transport_mutex);
-        (*(this->finger_table))[0] = new Node(id, port);
+        (*(this->finger_table))[0] = new Node(new_id, port);
         pthread_mutex_unlock(&transport_mutex);
 
         curr = this->finger_table->at(0);
