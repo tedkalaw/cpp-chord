@@ -51,15 +51,6 @@ int two;
 
 bool _debug = false;
 
-void enter(int x, char* p){
-  if(_debug)
-    printf("%d entering %s\n", x, p);
-}
-
-void leave(int x, char* p){
-  if(_debug)
-    printf("%d leaving %s\n", x, p);
-}
 int seed;
 /*
  *Constructor for the chord handler; resposnible for many of the functions of the server.
@@ -90,6 +81,7 @@ class ChordHandler : virtual public ChordIf {
     /*
      *Asking for successor
      */
+    int succ = 0;
     if(id != 0){
       shared_ptr<TSocket> socket(new TSocket("localhost", introducer_port));
       shared_ptr<TTransport> transport(new TBufferedTransport(socket));
@@ -100,10 +92,15 @@ class ChordHandler : virtual public ChordIf {
       this->introducer->join_network(returned, this->id);
       transport->close();
       this->set_succ(returned.id, returned.port);
+      succ = returned.id;
     }
     else{
       this->introducer = NULL;
     }
+
+    INIT_LOCAL_LOGGER();
+    LOGINFO("node= " << this->id << " initial successor= " << succ);
+
 
     pthread_mutex_init(&transport_mutex, NULL);
     this->start();
@@ -119,10 +116,14 @@ class ChordHandler : virtual public ChordIf {
     _return.node_id = this->id;
     if(it == data_table.end()){
       _return.success = false;
+        INIT_LOCAL_LOGGER();
+      LOGINFO("node= " << this->id << ": no such file: k= " << key << " to serve");
     }
     else{
       _return.data = data_table[key].first;
       _return.success = true;
+        INIT_LOCAL_LOGGER();
+      LOGINFO("node= " << this->id << ": served file: k= " << key);
     }
   }
 
@@ -210,13 +211,11 @@ class ChordHandler : virtual public ChordIf {
     successor next;
     find_successor(next, pid - 1);
     Node* temp = new Node(next.id, next.port);
-    enter(this->id, "gft");
     pthread_mutex_lock(&transport_mutex);
     temp->open_connection();
     temp->connection->gen_finger_table(_return);
     temp->close_connection();
     pthread_mutex_unlock(&transport_mutex);
-    enter(this->id, "gft");
     delete temp;
   }
 
@@ -244,6 +243,8 @@ class ChordHandler : virtual public ChordIf {
       find_successor(succ, key);
       if(succ.id == this->id){
         data_table[key] = pair<string, string>(data, filename);
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": added file: k= " << key);
         _return.node_id = this->id;
       }
       else{
@@ -275,12 +276,16 @@ class ChordHandler : virtual public ChordIf {
         _return.key = key;
         _return.node_id = this->id;
         _return.success = true;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": deleted file: k= " << key);
       }
       else{
         if(this->finger_table->at(SUCCESSOR) == NULL){
           _return.key = key;
           _return.node_id = this->id;
           _return.success = false;
+        INIT_LOCAL_LOGGER();
+          LOGINFO("node= " << this->id << ": no such file: k= " << key << " to delete");
         }
       }
     }
@@ -311,16 +316,23 @@ class ChordHandler : virtual public ChordIf {
     _return.node_id = this->id;
     if(it == data_table.end()){
       _return.success = false;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": no such file: k= " << key << " to delete");
     }
     else{
       data_table.erase(it);
       _return.success = true;
+        INIT_LOCAL_LOGGER();
+      LOGINFO("node= " << this->id << ": deleted file: k= " << key);
     }
   }
 
   /*
    * Gets file that corresponds to a given filename. Hashes it to SHA1 and
    * find the node that it belongs to.
+   *
+   * _return: key_and_node instance to store results in
+   * filename: name of file
    */
   void get_file(key_and_node& _return, const string& filename){
     int key = generate_sha1(filename);
@@ -332,11 +344,15 @@ class ChordHandler : virtual public ChordIf {
         _return.key = key;
         _return.node_id = this->id;
         _return.success = true;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": served file: k= " << key);
       }
       else{
         _return.key = key;
         _return.node_id = this->id;
         _return.success = false;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": no such file: k= " << key << " to serve");
       }
     }
     else{
@@ -359,6 +375,8 @@ class ChordHandler : virtual public ChordIf {
    * notify to migrate keys.
    */
   void transfer_file(const int32_t key, const string& data, const string& filename) {
+        INIT_LOCAL_LOGGER();
+    LOGINFO("node= " << this->id << ": added file: k= " << key);
     data_table[key] = pair<string, string>(data, filename);
   }
 
@@ -386,18 +404,19 @@ class ChordHandler : virtual public ChordIf {
         Node* new_node = new Node(pid, new_port);
         int val;
 
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": updated predecessor= " << pid);
+
         map<int, pair<string, string> >::iterator it;
         for(it = data_table.begin(); it != data_table.end(); ++it){
           val = it->first;
           if(val <= pid){
-            enter(this->id, "notify");
             pthread_mutex_lock(&transport_mutex);
             new_node->open_connection();
             pair<string, string> _data = it->second;
             new_node->connection->transfer_file(val, _data.first, _data.second);
             new_node->close_connection();
             pthread_mutex_unlock(&transport_mutex);
-            leave(this->id, "notify");
             data_table.erase(it);
           }
         }
@@ -443,13 +462,11 @@ class ChordHandler : virtual public ChordIf {
     while(!in_range(_return.id, _return.succ_id-1, pid)){
       if(_return.id != this->id){
         cur = new Node(_return.id, _return.port);
-        enter(this->id, "find_p");
         pthread_mutex_lock(&transport_mutex);
         cur->open_connection();
         cur->connection->closest_preceding_finger(_return, pid);
         cur->close_connection();
         pthread_mutex_unlock(&transport_mutex);
-        leave(this->id, "find_p");
       }
       else{
         closest_preceding_finger(_return, pid);
@@ -490,13 +507,11 @@ class ChordHandler : virtual public ChordIf {
         _return.id = entry->id;
         _return.port = entry->port;
         successor succ;
-        enter(this->id, "cpf");
         pthread_mutex_lock(&transport_mutex);
         entry->open_connection();
         entry->connection->get_successor(succ);
         entry->close_connection();
         pthread_mutex_unlock(&transport_mutex);
-        leave(this->id, "cpf");
         _return.succ_id = succ.id;
         _return.succ_port = succ.port;
         return;
@@ -546,17 +561,28 @@ class ChordHandler : virtual public ChordIf {
       }
     }
 
-    if(curr!= NULL && new_id == this->id){
-      pthread_mutex_unlock(&transport_mutex);
-      return;
-    }
 
+    INIT_LOCAL_LOGGER();
+    int node_id;
     if(new_id == this->id){
-      (*(this->finger_table))[i] = NULL;
+      if(curr != NULL){
+        (*(this->finger_table))[i] = NULL;
+        node_id = this->id;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": updated finger entry: i= " << i << ", pointer= " << node_id);
+      }
     }
     else{
-      (*(this->finger_table))[i] = new Node(new_id, new_port);
+      if((curr == NULL && new_id == this-> id)) {
+      }
+      else{
+        (*(this->finger_table))[i] = new Node(new_id, new_port);
+        node_id = new_id;
+        INIT_LOCAL_LOGGER();
+        LOGINFO("node= " << this->id << ": updated finger entry: i= " << i << ", pointer= " << node_id);
+      }
     }
+
 
     pthread_mutex_unlock(&transport_mutex);
   }
@@ -683,7 +709,7 @@ class ChordHandler : virtual public ChordIf {
     int pick, curr_start;
     while(true){
       sleep(this->fix_interval);
-      for(int i=1; i<=this->m; i++){
+      for(int i=2; i<=this->m; i++){
         find_successor(next, calc_start(i));
         set_finger(next.id, next.port, i-1);
       }
