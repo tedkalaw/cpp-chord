@@ -30,6 +30,5 @@ sha1.o: sha1.c
 log.o: log.cpp
 	$(CXX) $(INC) $(LINK) -c log.cpp
 
-
 clean:
 	$(RM) *.o Chord_server Chord_client

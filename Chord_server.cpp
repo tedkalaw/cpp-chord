@@ -409,7 +409,6 @@ class ChordHandler : virtual public ChordIf {
   //we can assume that add_node won't be called with an id that has alreayd 
   //been used
   void join_network(successor& _return, const int32_t pid){
-    printf("%d reporting for duty\n", pid);
     this->find_successor(_return, pid);
   }
 
@@ -418,20 +417,10 @@ class ChordHandler : virtual public ChordIf {
     _return.port = this->finger_table->at(0)->port;
   }
   void find_successor(successor& _return, const int32_t pid) {
-    /*
-    if(this->id == 2 && pid == 10){
-      printf("my id is 2 and i am trying to find the successor of 10\n");
-    }
-    */
     neighbor returned;
     this->find_predecessor(returned, pid);
 
 
-    /*
-    if(this->id == 2 && pid == 10){
-      printf("my id is 2 and the successor to 10 is %d\n", returned.succ_id);
-    }
-    */
     _return.id = returned.succ_id;
     _return.port = returned.succ_port;
   }
@@ -450,10 +439,6 @@ class ChordHandler : virtual public ChordIf {
       _return.succ_id = this->id;
       _return.succ_port = this->port;
     }
-    /*
-    if(id ==2 && pid == 10)
-      printf("Lookin at pred: the current succ_id is %d\n", _return.succ_id);
-      */
     int i=0;
     while(!in_range(_return.id, _return.succ_id-1, pid)){
       if(_return.id != this->id){
@@ -470,10 +455,6 @@ class ChordHandler : virtual public ChordIf {
         closest_preceding_finger(_return, pid);
       }
     }
-    /*
-    if(pid == 10)
-      printf("just finished this thang, so %d is on %d, %d\n", pid, _return.id, _return.succ_id);
-      */
   }
 
   /*
@@ -495,12 +476,6 @@ class ChordHandler : virtual public ChordIf {
     }
     if(left == right) returned = (left == t);
 
-    /*
-    if(returned)
-      printf("%d is on %d, %d\n", t, left, right);
-    else
-      printf("%d is not on %d, %d\n", t, left, right);
-      */
 
     return returned;
   }
@@ -569,10 +544,13 @@ class ChordHandler : virtual public ChordIf {
         pthread_mutex_unlock(&transport_mutex);
         return;
       }
-      else{
-
-      }
     }
+
+    if(curr!= NULL && new_id == this->id){
+      pthread_mutex_unlock(&transport_mutex);
+      return;
+    }
+
     if(new_id == this->id){
       (*(this->finger_table))[i] = NULL;
     }
